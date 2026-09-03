@@ -1,0 +1,130 @@
+<div class="encabezado-panel">
+  <div>
+    <h1>Apariencia y ajustes</h1>
+    <p>Cambie colores, logo, datos de contacto y textos sin tocar el codigo.</p>
+  </div>
+</div>
+
+@if (cargando()) {
+  <p class="vacio-panel">Cargando ajustes...</p>
+} @else {
+  <div class="ajustes">
+    <!-- Navegacion por grupos -->
+    <nav class="ajustes__pestanas" aria-label="Grupos de ajustes">
+      @for (pestana of pestanas(); track pestana.clave) {
+        <button
+          type="button"
+          class="ajustes__pestana"
+          [class.activa]="pestana.clave === grupoActivo()"
+          (click)="grupoActivo.set(pestana.clave)"
+        >
+          <app-icono [nombre]="pestana.icono" [tamano]="18" />
+          {{ pestana.titulo }}
+        </button>
+      }
+    </nav>
+
+    <section class="tarjeta-panel">
+      @if (descripcionGrupo()) {
+        <p class="ajustes__descripcion">{{ descripcionGrupo() }}</p>
+      }
+
+      <div class="rejilla-campos">
+        @for (campo of camposActivos(); track campo.clave) {
+          <div
+            class="campo-panel"
+            [class.campo-panel--ancho]="campo.tipo === 'json' || campo.tipo === 'media'"
+          >
+            @switch (campo.tipo) {
+              @case ('color') {
+                <label [attr.for]="campo.clave">{{ campo.etiqueta }}</label>
+                <div class="color">
+                  <input
+                    type="color"
+                    [id]="campo.clave"
+                    [value]="valorDe(campo.clave) || '#000000'"
+                    (input)="alEscribir(campo.clave, $event)"
+                  />
+                  <input
+                    type="text"
+                    class="color__hex"
+                    [value]="valorDe(campo.clave)"
+                    (input)="alEscribir(campo.clave, $event)"
+                  />
+                </div>
+              }
+
+              @case ('media') {
+                <app-selector-medio
+                  [valor]="idMedioDe(campo.clave)"
+                  (valorChange)="escribir(campo.clave, $event)"
+                  [medioInicial]="medioDe(campo.clave)"
+                  [etiqueta]="campo.etiqueta"
+                  [ayuda]="campo.ayuda"
+                />
+              }
+
+              @case ('json') {
+                <label [attr.for]="campo.clave">{{ campo.etiqueta }}</label>
+                <textarea
+                  [id]="campo.clave"
+                  rows="8"
+                  class="json"
+                  [value]="valorDe(campo.clave)"
+                  (input)="alEscribir(campo.clave, $event)"
+                ></textarea>
+                <small>
+                  Formato JSON. Ejemplo:
+                  <code>[&#123;"valor":"+15","etiqueta":"Anos de experiencia"&#125;]</code>
+                </small>
+              }
+
+              @default {
+                <label [attr.for]="campo.clave">{{ campo.etiqueta }}</label>
+                <input
+                  type="text"
+                  [id]="campo.clave"
+                  [value]="valorDe(campo.clave)"
+                  (input)="alEscribir(campo.clave, $event)"
+                />
+              }
+            }
+
+            @if (campo.ayuda && campo.tipo !== 'media') {
+              <small>{{ campo.ayuda }}</small>
+            }
+            @if (errorDe(campo.clave)) {
+              <small class="error-campo">{{ errorDe(campo.clave) }}</small>
+            }
+          </div>
+        }
+      </div>
+
+      @if (grupoActivo() === 'apariencia') {
+        <div class="previsualizacion">
+          <span class="previsualizacion__titulo">Vista previa</span>
+          <div
+            class="previsualizacion__muestra"
+            [style.background]="valorDe('color_primario')"
+            [style.border-radius]="valorDe('radio_bordes')"
+          >
+            <strong [style.color]="'#fff'">Encabezado del sitio</strong>
+            <span
+              class="previsualizacion__boton"
+              [style.background]="valorDe('color_secundario')"
+              [style.border-radius]="valorDe('radio_bordes')"
+            >
+              Boton principal
+            </span>
+          </div>
+        </div>
+      }
+
+      <div class="ajustes__pie">
+        <button type="button" class="btn btn--primario" (click)="guardar()" [disabled]="guardando()">
+          {{ guardando() ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

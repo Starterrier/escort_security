@@ -1,0 +1,89 @@
+<div class="panel" [class.panel--lateral-abierto]="lateralAbierto()">
+  <!-- ------------------------- Barra lateral ------------------------- -->
+  <aside class="lateral">
+    <a routerLink="/admin" class="lateral__marca">
+      <app-icono nombre="shield" [tamano]="24" />
+      <span>
+        <strong>Escort Security</strong>
+        <small>Panel de administracion</small>
+      </span>
+    </a>
+
+    <nav class="lateral__nav" aria-label="Secciones del panel">
+      @for (enlace of enlaces; track enlace.ruta) {
+        @if (visible(enlace)) {
+          <a
+            [routerLink]="enlace.ruta"
+            routerLinkActive="activo"
+            [routerLinkActiveOptions]="{ exact: enlace.ruta === '/admin' }"
+            class="lateral__enlace"
+          >
+            <app-icono [nombre]="enlace.icono" [tamano]="19" />
+            {{ enlace.etiqueta }}
+          </a>
+        }
+      }
+    </nav>
+
+    <div class="lateral__pie">
+      <a href="/" target="_blank" rel="noopener" class="lateral__enlace lateral__enlace--tenue">
+        <app-icono nombre="flecha" [tamano]="18" />
+        Ver el sitio
+      </a>
+    </div>
+  </aside>
+
+  <!-- --------------------------- Contenido --------------------------- -->
+  <div class="area">
+    <header class="barra">
+      <button
+        type="button"
+        class="barra__menu"
+        (click)="alternarLateral()"
+        [attr.aria-expanded]="lateralAbierto()"
+        aria-label="Alternar menu lateral"
+      >
+        <app-icono [nombre]="lateralAbierto() ? 'cerrar' : 'menu'" [tamano]="22" />
+      </button>
+
+      <div class="barra__usuario">
+        <a routerLink="/admin/cuenta" class="barra__perfil">
+          <span class="barra__avatar" aria-hidden="true">
+            {{ (auth.usuario()?.nombre ?? '?').charAt(0).toUpperCase() }}
+          </span>
+          <span class="barra__datos">
+            <strong>{{ auth.usuario()?.nombre }}</strong>
+            <small>{{ auth.usuario()?.rol === 'admin' ? 'Administrador' : 'Editor' }}</small>
+          </span>
+        </a>
+
+        <button type="button" class="barra__salir" (click)="salir()">
+          <app-icono nombre="salir" [tamano]="18" />
+          <span>Salir</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="contenido">
+      <router-outlet />
+    </main>
+  </div>
+
+  <!-- Capa que cierra el lateral en pantallas pequenas -->
+  @if (lateralAbierto()) {
+    <button type="button" class="velo" (click)="alternarLateral()" aria-label="Cerrar menu"></button>
+  }
+</div>
+
+<!-- ---------------------------- Avisos ---------------------------- -->
+<div class="avisos" role="status" aria-live="polite">
+  @for (aviso of avisos.avisos(); track aviso.id) {
+    <div class="aviso" [class]="'aviso--' + aviso.tipo">
+      <app-icono [nombre]="aviso.tipo === 'exito' ? 'cheque' : 'alerta'" [tamano]="18" />
+      <span>{{ aviso.texto }}</span>
+      <button type="button" (click)="avisos.cerrar(aviso.id)" aria-label="Cerrar aviso">
+        <app-icono nombre="cerrar" [tamano]="15" />
+      </button>
+    </div>
+  }
+</div>

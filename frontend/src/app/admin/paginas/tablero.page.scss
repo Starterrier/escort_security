@@ -1,0 +1,148 @@
+.tarjetas-resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.resumen {
+  padding: 22px;
+  background: #fff;
+  border: 1px solid var(--panel-borde, #e3e8ef);
+  border-radius: 14px;
+  color: inherit;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    border-color: var(--color-secundario);
+    color: inherit;
+  }
+
+  &--destacada {
+    border-color: var(--color-secundario);
+    background: rgba(var(--secundario-rgb), 0.06);
+  }
+
+  &__icono {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    margin-bottom: 14px;
+    border-radius: 11px;
+    background: rgba(var(--secundario-rgb), 0.12);
+    color: var(--color-secundario);
+  }
+
+  &__valor {
+    display: block;
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--color-primario);
+  }
+
+  &__etiqueta {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.82rem;
+    color: var(--texto-tenue);
+  }
+}
+
+.tablero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+  align-items: start;
+
+  .tarjeta-panel + .tarjeta-panel {
+    margin-top: 0;
+  }
+}
+
+/* --- Grafico de barras --------------------------------------------------- */
+
+.grafico {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 210px;
+  padding-top: 20px;
+
+  &__columna {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    gap: 8px;
+
+    small {
+      font-size: 0.68rem;
+      color: var(--texto-tenue);
+      white-space: nowrap;
+    }
+  }
+
+  &__barra {
+    position: relative;
+    width: 100%;
+    max-width: 42px;
+    min-height: 6px;
+    border-radius: 6px 6px 3px 3px;
+    background: var(--color-secundario);
+
+    span {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--color-primario);
+    }
+  }
+}
+
+/* --- Ultimas solicitudes -------------------------------------------------- */
+
+.ultimas {
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding-block: 12px;
+    border-bottom: 1px solid var(--panel-borde, #e3e8ef);
+  }
+
+  strong {
+    display: block;
+    font-size: 0.89rem;
+  }
+
+  small {
+    font-size: 0.77rem;
+    color: var(--texto-tenue);
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 1100px) {
+  .tablero {
+    grid-template-columns: 1fr;
+  }
+}

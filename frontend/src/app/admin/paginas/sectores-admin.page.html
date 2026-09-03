@@ -1,0 +1,159 @@
+<div class="encabezado-panel">
+  <div>
+    <h1>Sectores</h1>
+    <p>Industrias que aparecen en la portada y en la pagina de sectores.</p>
+  </div>
+
+  <div class="encabezado-panel__acciones">
+    <button type="button" class="btn btn--primario" (click)="nuevo()">
+      <app-icono nombre="mas" [tamano]="17" />
+      Nuevo sector
+    </button>
+  </div>
+</div>
+
+@if (cargando()) {
+  <p class="vacio-panel">Cargando sectores...</p>
+} @else {
+  <div class="rejilla-sectores">
+    @for (sector of sectores(); track sector.id; let i = $index; let ultimo = $last) {
+      <article class="tarjeta-sector-admin" [class.inactiva]="!sector.activo">
+        <div class="tarjeta-sector-admin__medio">
+          @if (sector.imagen?.url) {
+            <img [src]="sector.imagen!.url" [alt]="sector.nombre" />
+          } @else {
+            <span><app-icono [nombre]="sector.icono" [tamano]="26" /></span>
+          }
+        </div>
+
+        <div class="tarjeta-sector-admin__cuerpo">
+          <h2>{{ sector.nombre }}</h2>
+          <p>{{ sector.descripcion }}</p>
+        </div>
+
+        <div class="tarjeta-sector-admin__pie">
+          <button
+            type="button"
+            class="etiqueta"
+            [class]="'etiqueta etiqueta--' + (sector.activo ? 'activo' : 'inactivo')"
+            (click)="alternarActivo(sector)"
+          >
+            {{ sector.activo ? 'Publicado' : 'Oculto' }}
+          </button>
+
+          <div class="tarjeta-sector-admin__acciones">
+            <button
+              type="button"
+              class="btn btn--icono btn--pequeno"
+              [disabled]="i === 0"
+              (click)="mover(sector, -1)"
+              aria-label="Subir"
+            >
+              <app-icono nombre="arriba" [tamano]="14" />
+            </button>
+            <button
+              type="button"
+              class="btn btn--icono btn--pequeno"
+              [disabled]="ultimo"
+              (click)="mover(sector, 1)"
+              aria-label="Bajar"
+            >
+              <app-icono nombre="abajo" [tamano]="14" />
+            </button>
+            <button type="button" class="btn btn--borde btn--pequeno" (click)="editar(sector)">
+              <app-icono nombre="editar" [tamano]="14" />
+            </button>
+            <button type="button" class="btn btn--peligro btn--pequeno" (click)="confirmar(sector)">
+              <app-icono nombre="basura" [tamano]="14" />
+            </button>
+          </div>
+        </div>
+      </article>
+    } @empty {
+      <p class="vacio-panel">Aun no hay sectores. Cree el primero.</p>
+    }
+  </div>
+}
+
+@if (abierto()) {
+  <div class="modal-fondo">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal__cabecera">
+        <h2>{{ editando() ? 'Editar sector' : 'Nuevo sector' }}</h2>
+        <button type="button" class="btn btn--icono" (click)="cerrar()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" [tamano]="18" />
+        </button>
+      </div>
+
+      <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+        <div class="modal__cuerpo">
+          <div class="rejilla-campos">
+            <div class="campo-panel">
+              <label for="nombre">Nombre *</label>
+              <input id="nombre" type="text" formControlName="nombre" />
+              @if (errorDe('nombre')) {
+                <small class="error-campo">{{ errorDe('nombre') }}</small>
+              }
+            </div>
+
+            <div class="campo-panel">
+              <label for="slug">URL (slug)</label>
+              <input id="slug" type="text" formControlName="slug" placeholder="se genera del nombre" />
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label for="descripcion">Descripcion</label>
+              <textarea id="descripcion" rows="3" formControlName="descripcion"></textarea>
+            </div>
+
+            <div class="campo-panel">
+              <label for="icono">Icono (si no hay imagen)</label>
+              <select id="icono" formControlName="icono">
+                @for (icono of iconos; track icono) {
+                  <option [value]="icono">{{ icono }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="campo-panel">
+              <app-selector-medio
+                [(valor)]="imagenId"
+                [medioInicial]="imagenActual()"
+                etiqueta="Imagen del sector"
+              />
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label class="interruptor">
+                <input type="checkbox" formControlName="activo" />
+                Publicado en el sitio
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal__pie">
+          <button type="button" class="btn btn--borde" (click)="cerrar()">Cancelar</button>
+          <button type="submit" class="btn btn--primario" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando...' : 'Guardar sector' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (confirmando(); as objetivo) {
+  <div class="modal-fondo">
+    <div class="modal" style="max-width: 440px" role="alertdialog" aria-modal="true">
+      <div class="modal__cabecera"><h2>Eliminar sector</h2></div>
+      <div class="modal__cuerpo">
+        <p>Se eliminara <strong>{{ objetivo.nombre }}</strong> de forma permanente.</p>
+      </div>
+      <div class="modal__pie">
+        <button type="button" class="btn btn--borde" (click)="confirmando.set(null)">Cancelar</button>
+        <button type="button" class="btn btn--peligro" (click)="eliminar()">Si, eliminar</button>
+      </div>
+    </div>
+  </div>
+}

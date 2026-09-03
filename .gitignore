@@ -1,0 +1,26 @@
+# --- Angular / Node ---------------------------------------------------
+node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/tmp/
+frontend/out-tsc/
+npm-debug.log*
+yarn-error.log*
+
+# --- Backend PHP ------------------------------------------------------
+# Contiene credenciales de base de datos y la clave JWT: nunca se versiona.
+backend/config/config.php
+backend/storage/logs/*
+!backend/storage/logs/.gitkeep
+backend/vendor/
+
+# --- Editor / sistema operativo ---------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# --- Descargas incompletas --------------------------------------------
+*.crdownload

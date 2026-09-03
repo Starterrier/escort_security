@@ -1,0 +1,28 @@
+# =====================================================================
+#  API ESCORT SECURITY SERVICES - reescritura y cabeceras
+# =====================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Pasa la cabecera Authorization a PHP (CGI/FastCGI la descarta).
+    RewriteCond %{HTTP:Authorization} ^(.+)$
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+    # Los archivos subidos se sirven tal cual.
+    RewriteCond %{REQUEST_URI} ^/?uploads/ [OR]
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # Todo lo demas entra por el controlador frontal.
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# Nunca listar directorios.
+Options -Indexes

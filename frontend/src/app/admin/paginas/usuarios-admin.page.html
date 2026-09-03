@@ -1,0 +1,173 @@
+<div class="encabezado-panel">
+  <div>
+    <h1>Usuarios</h1>
+    <p>Quienes pueden entrar al panel y con que permisos.</p>
+  </div>
+
+  <div class="encabezado-panel__acciones">
+    <button type="button" class="btn btn--primario" (click)="nuevo()">
+      <app-icono nombre="mas" [tamano]="17" />
+      Nuevo usuario
+    </button>
+  </div>
+</div>
+
+@if (cargando()) {
+  <p class="vacio-panel">Cargando usuarios...</p>
+} @else {
+  <div class="tabla-envoltura">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Perfil</th>
+          <th>Estado</th>
+          <th>Ultimo acceso</th>
+          <th style="width: 180px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (usuario of usuarios(); track usuario.id) {
+          <tr>
+            <td>
+              <div class="celda-usuario">
+                <span class="avatar">{{ usuario.nombre.charAt(0).toUpperCase() }}</span>
+                <div>
+                  <strong>
+                    {{ usuario.nombre }}
+                    @if (esYo(usuario)) {
+                      <span class="yo">Usted</span>
+                    }
+                  </strong>
+                  <small>{{ usuario.email }}</small>
+                </div>
+              </div>
+            </td>
+            <td>{{ usuario.rol === 'admin' ? 'Administrador' : 'Editor' }}</td>
+            <td>
+              <span class="etiqueta" [class]="'etiqueta etiqueta--' + (usuario.activo ? 'activo' : 'inactivo')">
+                {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td>
+              {{ usuario.ultimo_acceso ? (usuario.ultimo_acceso | date: 'dd/MM/yy HH:mm') : 'Nunca' }}
+            </td>
+            <td>
+              <div class="tabla__acciones">
+                <button type="button" class="btn btn--borde btn--pequeno" (click)="editar(usuario)">
+                  <app-icono nombre="editar" [tamano]="15" />
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--peligro btn--pequeno"
+                  [disabled]="esYo(usuario)"
+                  (click)="confirmando.set(usuario)"
+                  aria-label="Eliminar"
+                >
+                  <app-icono nombre="basura" [tamano]="15" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (abierto()) {
+  <div class="modal-fondo">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal__cabecera">
+        <h2>{{ editando() ? 'Editar usuario' : 'Nuevo usuario' }}</h2>
+        <button type="button" class="btn btn--icono" (click)="cerrar()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" [tamano]="18" />
+        </button>
+      </div>
+
+      <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+        <div class="modal__cuerpo">
+          <div class="rejilla-campos">
+            <div class="campo-panel">
+              <label for="nombre">Nombre *</label>
+              <input id="nombre" type="text" formControlName="nombre" />
+              @if (invalido('nombre')) {
+                <small class="error-campo">Escriba el nombre.</small>
+              }
+              @if (errorDe('nombre')) {
+                <small class="error-campo">{{ errorDe('nombre') }}</small>
+              }
+            </div>
+
+            <div class="campo-panel">
+              <label for="email">Correo *</label>
+              <input id="email" type="email" formControlName="email" autocomplete="off" />
+              @if (invalido('email')) {
+                <small class="error-campo">Escriba un correo valido.</small>
+              }
+              @if (errorDe('email')) {
+                <small class="error-campo">{{ errorDe('email') }}</small>
+              }
+            </div>
+
+            <div class="campo-panel">
+              <label for="clave">
+                {{ editando() ? 'Nueva contrasena (opcional)' : 'Contrasena *' }}
+              </label>
+              <input id="clave" type="password" formControlName="clave" autocomplete="new-password" />
+              <small>Minimo 8 caracteres.</small>
+              @if (invalido('clave')) {
+                <small class="error-campo">La contrasena debe tener al menos 8 caracteres.</small>
+              }
+              @if (errorDe('clave')) {
+                <small class="error-campo">{{ errorDe('clave') }}</small>
+              }
+            </div>
+
+            <div class="campo-panel">
+              <label for="rol">Perfil</label>
+              <select id="rol" formControlName="rol">
+                <option value="editor">Editor (contenido del sitio)</option>
+                <option value="admin">Administrador (todo, incluidos usuarios)</option>
+              </select>
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label class="interruptor">
+                <input type="checkbox" formControlName="activo" />
+                Cuenta activa
+              </label>
+              <small>Al desactivar una cuenta se cierra su sesion de inmediato.</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal__pie">
+          <button type="button" class="btn btn--borde" (click)="cerrar()">Cancelar</button>
+          <button type="submit" class="btn btn--primario" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando...' : 'Guardar usuario' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (confirmando(); as objetivo) {
+  <div class="modal-fondo">
+    <div class="modal" style="max-width: 440px" role="alertdialog" aria-modal="true">
+      <div class="modal__cabecera"><h2>Eliminar usuario</h2></div>
+      <div class="modal__cuerpo">
+        <p>
+          Se eliminara la cuenta de <strong>{{ objetivo.nombre }}</strong>. Perdera el acceso al panel
+          de inmediato.
+        </p>
+      </div>
+      <div class="modal__pie">
+        <button type="button" class="btn btn--borde" (click)="confirmando.set(null)">Cancelar</button>
+        <button type="button" class="btn btn--peligro" (click)="eliminar()">Si, eliminar</button>
+      </div>
+    </div>
+  </div>
+}

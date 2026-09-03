@@ -1,0 +1,45 @@
+.subtitulo-celda {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--texto-tenue);
+}
+
+.sistema {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.ruta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  color: var(--color-secundario);
+}
+
+button.etiqueta {
+  border: 0;
+  cursor: pointer;
+}
+
+.en-menu {
+  display: inline-block;
+  margin: 5px 0 0 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.interruptores-pagina {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+  padding-top: 6px;
+}

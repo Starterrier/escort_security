@@ -1,0 +1,120 @@
+@if (noEncontrado()) {
+  <app-encabezado-pagina titulo="Servicio no disponible" />
+
+  <section class="seccion">
+    <div class="contenedor centrado">
+      <p class="entradilla">
+        El servicio que busca no existe o fue retirado del portafolio.
+      </p>
+      <a routerLink="/servicios" class="boton boton--primario">Ver todos los servicios</a>
+    </div>
+  </section>
+} @else if (detalle(); as d) {
+  <app-encabezado-pagina
+    [titulo]="d.servicio.titulo"
+    [subtitulo]="d.servicio.resumen"
+    [imagen]="d.servicio.imagen?.url ?? ''"
+    [padre]="{ etiqueta: 'Servicios', ruta: '/servicios' }"
+  />
+
+  <section class="seccion">
+    <div class="contenedor detalle">
+      <article class="detalle__cuerpo">
+        @if (d.servicio.imagen?.url) {
+          <img
+            class="detalle__imagen"
+            [src]="d.servicio.imagen!.url"
+            [alt]="d.servicio.imagen!.alt || d.servicio.titulo"
+          />
+        }
+
+        @if (d.servicio.descripcion) {
+          <div class="contenido-rico" [innerHTML]="d.servicio.descripcion"></div>
+        } @else {
+          <p class="entradilla">{{ d.servicio.resumen }}</p>
+        }
+
+        @if (d.servicio.items.length) {
+          <h2 class="detalle__subtitulo">Que incluye</h2>
+          <ul class="alcance">
+            @for (item of d.servicio.items; track item) {
+              <li>
+                <app-icono nombre="cheque" [tamano]="17" />
+                {{ item }}
+              </li>
+            }
+          </ul>
+        }
+      </article>
+
+      <aside class="detalle__lateral">
+        <div class="panel-cta">
+          <span class="panel-cta__icono">
+            <app-icono [nombre]="d.servicio.icono" [tamano]="28" />
+          </span>
+          <h3>Solicite este servicio</h3>
+          <p>
+            Un asesor evalua su necesidad y le presenta un esquema de proteccion a la medida, sin
+            costo.
+          </p>
+
+          <a
+            [routerLink]="['/contacto']"
+            [queryParams]="{ servicio: d.servicio.id }"
+            class="boton boton--primario boton--bloque"
+          >
+            Pedir cotizacion
+          </a>
+
+          @let a = sitio.ajustes();
+          @if (a.whatsapp_url) {
+            <a
+              [href]="a.whatsapp_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="boton boton--contorno boton--bloque"
+            >
+              <app-icono nombre="whatsapp" [tamano]="18" />
+              Escribir por WhatsApp
+            </a>
+          }
+
+          <ul class="panel-cta__datos">
+            @if (a.contacto_telefono) {
+              <li>
+                <app-icono nombre="telefono" [tamano]="16" />
+                <a [href]="a.telefono_url">{{ a.contacto_telefono }}</a>
+              </li>
+            }
+            @if (a.contacto_email) {
+              <li>
+                <app-icono nombre="correo" [tamano]="16" />
+                <a [href]="'mailto:' + a.contacto_email">{{ a.contacto_email }}</a>
+              </li>
+            }
+          </ul>
+        </div>
+
+        @if (d.relacionados.length) {
+          <div class="relacionados">
+            <h3>Tambien le puede interesar</h3>
+            <ul>
+              @for (relacionado of d.relacionados; track relacionado.id) {
+                <li>
+                  <a [routerLink]="['/servicios', relacionado.slug]">
+                    <app-icono [nombre]="relacionado.icono" [tamano]="18" />
+                    <span>{{ relacionado.titulo }}</span>
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </aside>
+    </div>
+  </section>
+} @else {
+  <div class="cargando">
+    <p>Cargando servicio...</p>
+  </div>
+}

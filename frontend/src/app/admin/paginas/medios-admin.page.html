@@ -1,0 +1,173 @@
+<div class="encabezado-panel">
+  <div>
+    <h1>Biblioteca</h1>
+    <p>Todas las imagenes y documentos que usa el sitio.</p>
+  </div>
+
+  <div class="encabezado-panel__acciones">
+    <input
+      type="text"
+      class="buscador"
+      placeholder="Buscar archivo..."
+      [value]="busqueda()"
+      (input)="buscar($event)"
+    />
+    <label class="btn btn--primario">
+      <app-icono nombre="mas" [tamano]="17" />
+      {{ subiendo() ? 'Subiendo...' : 'Subir archivos' }}
+      <input
+        type="file"
+        multiple
+        hidden
+        accept="image/jpeg,image/png,image/webp,image/avif,application/pdf"
+        [disabled]="subiendo()"
+        (change)="subir($event)"
+      />
+    </label>
+  </div>
+</div>
+
+@if (cargando()) {
+  <p class="vacio-panel">Cargando biblioteca...</p>
+} @else {
+  <div class="rejilla-medios">
+    @for (medio of medios(); track medio.id) {
+      <article class="medio">
+        <button type="button" class="medio__vista" (click)="abrirDetalle(medio)">
+          @if (medio.mime.startsWith('image/')) {
+            <img [src]="medio.url" [alt]="medio.alt || medio.nombre_original" loading="lazy" />
+          } @else {
+            <span class="medio__documento"><app-icono nombre="documento" [tamano]="30" /></span>
+          }
+        </button>
+
+        <div class="medio__info">
+          <strong [title]="medio.nombre_original">{{ medio.nombre_original }}</strong>
+          <small>
+            {{ medio.peso / 1024 | number: '1.0-0' }} KB
+            @if (medio.ancho) {
+              &middot; {{ medio.ancho }}x{{ medio.alto }}
+            }
+          </small>
+        </div>
+
+        <div class="medio__acciones">
+          <button
+            type="button"
+            class="btn btn--icono btn--pequeno"
+            (click)="copiarUrl(medio)"
+            title="Copiar direccion"
+          >
+            <app-icono nombre="documento" [tamano]="14" />
+          </button>
+          <button
+            type="button"
+            class="btn btn--icono btn--pequeno"
+            (click)="abrirDetalle(medio)"
+            title="Editar"
+          >
+            <app-icono nombre="editar" [tamano]="14" />
+          </button>
+          <button
+            type="button"
+            class="btn btn--peligro btn--pequeno"
+            (click)="confirmando.set(medio)"
+            title="Eliminar"
+          >
+            <app-icono nombre="basura" [tamano]="14" />
+          </button>
+        </div>
+      </article>
+    } @empty {
+      <p class="vacio-panel">
+        La biblioteca esta vacia. Use "Subir archivos" para agregar las fotos del sitio.
+      </p>
+    }
+  </div>
+
+  @if (meta(); as m) {
+    @if (m.paginas > 1) {
+      <nav class="paginacion" aria-label="Paginas">
+        @for (n of numerosPagina(); track n) {
+          <button
+            type="button"
+            class="paginacion__boton"
+            [class.activa]="n === m.pagina"
+            (click)="irAPagina(n)"
+          >
+            {{ n }}
+          </button>
+        }
+      </nav>
+    }
+  }
+}
+
+<!-- Detalle -->
+@if (detalle(); as medio) {
+  <div class="modal-fondo" (click)="detalle.set(null)">
+    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="modal__cabecera">
+        <h2>Detalle del archivo</h2>
+        <button type="button" class="btn btn--icono" (click)="detalle.set(null)" aria-label="Cerrar">
+          <app-icono nombre="cerrar" [tamano]="18" />
+        </button>
+      </div>
+
+      <div class="modal__cuerpo">
+        @if (medio.mime.startsWith('image/')) {
+          <img [src]="medio.url" [alt]="medio.alt" class="detalle-imagen" />
+        }
+
+        <dl class="detalle-datos">
+          <dt>Nombre</dt>
+          <dd>{{ medio.nombre_original }}</dd>
+          <dt>Tipo</dt>
+          <dd>{{ medio.mime }}</dd>
+          <dt>Tamano</dt>
+          <dd>{{ medio.peso / 1024 | number: '1.0-0' }} KB</dd>
+          <dt>Direccion</dt>
+          <dd class="detalle-url">{{ medio.url }}</dd>
+        </dl>
+
+        <div class="campo-panel">
+          <label for="alt">Texto alternativo</label>
+          <input
+            id="alt"
+            type="text"
+            [ngModel]="altEditado()"
+            (ngModelChange)="altEditado.set($event)"
+          />
+          <small>Describe la imagen para lectores de pantalla y buscadores.</small>
+        </div>
+      </div>
+
+      <div class="modal__pie">
+        <button type="button" class="btn btn--borde" (click)="detalle.set(null)">Cerrar</button>
+        <button type="button" class="btn btn--primario" (click)="guardarAlt()">Guardar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Confirmar borrado -->
+@if (confirmando(); as objetivo) {
+  <div class="modal-fondo">
+    <div class="modal" style="max-width: 470px" role="alertdialog" aria-modal="true">
+      <div class="modal__cabecera"><h2>Eliminar archivo</h2></div>
+      <div class="modal__cuerpo">
+        <p>
+          Se eliminara <strong>{{ objetivo.nombre_original }}</strong> del servidor. Si esta en uso en
+          algun servicio o pagina, el sistema se lo advertira.
+        </p>
+      </div>
+      <div class="modal__pie">
+        <button type="button" class="btn btn--borde" (click)="confirmando.set(null)">Cancelar</button>
+        <button type="button" class="btn btn--peligro" (click)="eliminar()">Eliminar</button>
+        <button type="button" class="btn btn--peligro" (click)="eliminar(true)">
+          Eliminar aunque este en uso
+        </button>
+      </div>
+    </div>
+  </div>
+}

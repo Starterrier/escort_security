@@ -1,0 +1,207 @@
+@let a = sitio.ajustes();
+
+<app-encabezado-pagina
+  titulo="Contacto"
+  subtitulo="Cuentenos su necesidad de seguridad y un asesor le respondera con una propuesta a la medida."
+/>
+
+<section class="seccion">
+  <div class="contenedor contacto">
+    <!-- ----------------------- Datos de contacto ---------------------- -->
+    <aside class="contacto__datos">
+      <h2>Hablemos</h2>
+      <p class="entradilla">
+        Atendemos operaciones en todo el pais. Escribanos o llamenos en horario de oficina.
+      </p>
+
+      <ul class="datos">
+        @if (a.contacto_direccion) {
+          <li>
+            <span class="datos__icono"><app-icono nombre="ubicacion" [tamano]="20" /></span>
+            <div>
+              <strong>Direccion</strong>
+              @if (a.contacto_mapa) {
+                <a [href]="a.contacto_mapa" target="_blank" rel="noopener noreferrer">
+                  {{ a.contacto_direccion }} - {{ a.contacto_ciudad }}
+                </a>
+              } @else {
+                <span>{{ a.contacto_direccion }} - {{ a.contacto_ciudad }}</span>
+              }
+            </div>
+          </li>
+        }
+        @if (a.contacto_telefono) {
+          <li>
+            <span class="datos__icono"><app-icono nombre="telefono" [tamano]="20" /></span>
+            <div>
+              <strong>Telefono</strong>
+              <a [href]="a.telefono_url">{{ a.contacto_telefono }}</a>
+            </div>
+          </li>
+        }
+        @if (a.whatsapp_url) {
+          <li>
+            <span class="datos__icono"><app-icono nombre="whatsapp" [tamano]="20" /></span>
+            <div>
+              <strong>WhatsApp</strong>
+              <a [href]="a.whatsapp_url" target="_blank" rel="noopener noreferrer">
+                Iniciar conversacion
+              </a>
+            </div>
+          </li>
+        }
+        @if (a.contacto_email) {
+          <li>
+            <span class="datos__icono"><app-icono nombre="correo" [tamano]="20" /></span>
+            <div>
+              <strong>Correo</strong>
+              <a [href]="'mailto:' + a.contacto_email">{{ a.contacto_email }}</a>
+            </div>
+          </li>
+        }
+        @if (a.contacto_horario) {
+          <li>
+            <span class="datos__icono"><app-icono nombre="reloj" [tamano]="20" /></span>
+            <div>
+              <strong>Horario</strong>
+              <span>{{ a.contacto_horario }}</span>
+            </div>
+          </li>
+        }
+      </ul>
+
+      @if (a.sitio_licencia) {
+        <p class="licencia">{{ a.sitio_licencia }}</p>
+      }
+    </aside>
+
+    <!-- -------------------------- Formulario -------------------------- -->
+    <div class="contacto__formulario">
+      @if (enviado()) {
+        <div class="exito" role="status">
+          <span class="exito__icono"><app-icono nombre="cheque" [tamano]="32" /></span>
+          <h2>Solicitud enviada</h2>
+          <p>
+            Gracias por escribirnos. Un asesor comercial se pondra en contacto con usted en el
+            transcurso de la jornada.
+          </p>
+          <button type="button" class="boton boton--contorno" (click)="nuevoMensaje()">
+            Enviar otra solicitud
+          </button>
+        </div>
+      } @else {
+        <form [formGroup]="formulario" (ngSubmit)="enviar()" novalidate>
+          <h2>Solicitar cotizacion</h2>
+
+          @if (errorGeneral()) {
+            <p class="alerta" role="alert">
+              <app-icono nombre="alerta" [tamano]="18" />
+              {{ errorGeneral() }}
+            </p>
+          }
+
+          <div class="campos">
+            <div class="campo">
+              <label for="nombre">Nombre completo *</label>
+              <input
+                id="nombre"
+                type="text"
+                formControlName="nombre"
+                autocomplete="name"
+                [class.invalido]="campoInvalido('nombre') || errorDe('nombre')"
+              />
+              @if (campoInvalido('nombre')) {
+                <small class="error">Escriba su nombre (minimo 3 caracteres).</small>
+              } @else if (errorDe('nombre')) {
+                <small class="error">{{ errorDe('nombre') }}</small>
+              }
+            </div>
+
+            <div class="campo">
+              <label for="email">Correo electronico *</label>
+              <input
+                id="email"
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                [class.invalido]="campoInvalido('email') || errorDe('email')"
+              />
+              @if (campoInvalido('email')) {
+                <small class="error">Escriba un correo valido.</small>
+              } @else if (errorDe('email')) {
+                <small class="error">{{ errorDe('email') }}</small>
+              }
+            </div>
+
+            <div class="campo">
+              <label for="telefono">Telefono</label>
+              <input id="telefono" type="tel" formControlName="telefono" autocomplete="tel" />
+            </div>
+
+            <div class="campo">
+              <label for="empresa">Empresa</label>
+              <input id="empresa" type="text" formControlName="empresa" autocomplete="organization" />
+            </div>
+
+            <div class="campo">
+              <label for="ciudad">Ciudad</label>
+              <input id="ciudad" type="text" formControlName="ciudad" autocomplete="address-level2" />
+            </div>
+
+            <div class="campo">
+              <label for="servicio">Servicio de interes</label>
+              <select id="servicio" formControlName="servicio_id">
+                <option value="">Seleccione un servicio</option>
+                @for (servicio of sitio.servicios(); track servicio.id) {
+                  <option [value]="servicio.id">{{ servicio.titulo }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="campo campo--ancho">
+              <label for="mensaje">Cuentenos su necesidad *</label>
+              <textarea
+                id="mensaje"
+                rows="5"
+                formControlName="mensaje"
+                [class.invalido]="campoInvalido('mensaje') || errorDe('mensaje')"
+                placeholder="Describa el tipo de instalacion, el numero de puestos requeridos y el horario."
+              ></textarea>
+              @if (campoInvalido('mensaje')) {
+                <small class="error">Escriba al menos 10 caracteres.</small>
+              } @else if (errorDe('mensaje')) {
+                <small class="error">{{ errorDe('mensaje') }}</small>
+              }
+            </div>
+          </div>
+
+          <!-- Trampa antispam: oculta para las personas, visible para los robots -->
+          <div class="trampa" aria-hidden="true">
+            <label for="sitio_web">No complete este campo</label>
+            <input id="sitio_web" type="text" formControlName="sitio_web" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <label class="acepta">
+            <input type="checkbox" formControlName="acepta" />
+            <span>
+              Autorizo el tratamiento de mis datos personales conforme a la
+              <a href="/pagina/politica-de-tratamiento-de-datos" target="_blank" rel="noopener">
+                politica de tratamiento de datos </a
+              >. *
+            </span>
+          </label>
+          @if (campoInvalido('acepta')) {
+            <small class="error">Debe autorizar el tratamiento de datos para continuar.</small>
+          }
+
+          <button type="submit" class="boton boton--primario" [disabled]="enviando()">
+            {{ enviando() ? 'Enviando...' : 'Enviar solicitud' }}
+            @if (!enviando()) {
+              <app-icono nombre="flecha" [tamano]="18" />
+            }
+          </button>
+        </form>
+      }
+    </div>
+  </div>
+</section>

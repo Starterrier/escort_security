@@ -1,0 +1,70 @@
+<app-encabezado-pagina
+  titulo="Servicios"
+  subtitulo="Esquemas de proteccion, gestion del riesgo e inteligencia disenados a la medida de su operacion."
+/>
+
+<section class="seccion">
+  <div class="contenedor">
+    @if (categorias().length > 2) {
+      <div class="filtros" role="group" aria-label="Filtrar por categoria">
+        @for (categoria of categorias(); track categoria) {
+          <button
+            type="button"
+            class="filtro"
+            [class.filtro--activo]="categoria === categoriaActiva()"
+            [attr.aria-pressed]="categoria === categoriaActiva()"
+            (click)="filtrar(categoria)"
+          >
+            {{ categoria === 'todas' ? 'Todos los servicios' : categoria }}
+          </button>
+        }
+      </div>
+    }
+
+    <div class="lista">
+      @for (servicio of serviciosFiltrados(); track servicio.id) {
+        <article class="ficha">
+          <div class="ficha__cabecera">
+            <span class="ficha__icono">
+              <app-icono [nombre]="servicio.icono" [tamano]="26" />
+            </span>
+            <div>
+              <span class="ficha__categoria">{{ servicio.categoria }}</span>
+              <h2 class="ficha__titulo">{{ servicio.titulo }}</h2>
+            </div>
+          </div>
+
+          <p class="ficha__resumen">{{ servicio.resumen }}</p>
+
+          @if (servicio.items.length) {
+            <ul class="ficha__items">
+              @for (item of servicio.items; track item) {
+                <li>
+                  <app-icono nombre="cheque" [tamano]="15" />
+                  {{ item }}
+                </li>
+              }
+            </ul>
+          }
+
+          <a [routerLink]="['/servicios', servicio.slug]" class="boton boton--contorno ficha__boton">
+            Ver detalle
+            <app-icono nombre="flecha" [tamano]="17" />
+          </a>
+        </article>
+      } @empty {
+        <p class="vacio">No hay servicios publicados en esta categoria.</p>
+      }
+    </div>
+  </div>
+</section>
+
+<section class="seccion seccion--oscura">
+  <div class="contenedor cierre">
+    <h2>No encuentra el servicio que necesita?</h2>
+    <p class="entradilla">
+      Estructuramos esquemas a la medida. Cuentenos su operacion y le proponemos una solucion.
+    </p>
+    <a routerLink="/contacto" class="boton boton--primario">Hablar con un asesor</a>
+  </div>
+</section>

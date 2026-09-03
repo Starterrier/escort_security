@@ -1,0 +1,123 @@
+.buscador {
+  padding: 10px 14px;
+  border: 1px solid var(--panel-borde, #e3e8ef);
+  border-radius: 9px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.87rem;
+  min-width: 280px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-secundario);
+  }
+}
+
+.filtros-estado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.filtro-estado {
+  padding: 8px 18px;
+  border: 1px solid var(--panel-borde, #e3e8ef);
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+
+  &.activo {
+    background: var(--color-primario);
+    border-color: var(--color-primario);
+    color: #fff;
+  }
+}
+
+.secundario {
+  display: block;
+  font-size: 0.77rem;
+  color: var(--texto-tenue);
+}
+
+tr.sin-leer {
+  background: rgba(var(--secundario-rgb), 0.05);
+}
+
+.selector-estado {
+  padding: 6px 10px;
+  border: 1px solid var(--panel-borde, #e3e8ef);
+  border-radius: 8px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+}
+
+.paginacion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 22px;
+
+  &__boton {
+    min-width: 38px;
+    padding: 8px 12px;
+    border: 1px solid var(--panel-borde, #e3e8ef);
+    border-radius: 9px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+
+    &.activa {
+      background: var(--color-primario);
+      border-color: var(--color-primario);
+      color: #fff;
+    }
+  }
+}
+
+.ficha-solicitud {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 7px 16px;
+  margin: 0 0 22px;
+  font-size: 0.88rem;
+
+  dt {
+    font-weight: 700;
+    color: var(--texto-tenue);
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.mensaje-solicitud {
+  padding: 18px;
+  margin-bottom: 22px;
+  background: #f6f8fb;
+  border-radius: 11px;
+
+  span {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--texto-tenue);
+  }
+
+  p {
+    margin: 0;
+    white-space: pre-wrap;
+    font-size: 0.92rem;
+  }
+}

@@ -1,0 +1,172 @@
+<div class="encabezado-panel">
+  <div>
+    <h1>Carrusel de portada</h1>
+    <p>Diapositivas que rotan en la cabecera del inicio.</p>
+  </div>
+
+  <div class="encabezado-panel__acciones">
+    <button type="button" class="btn btn--primario" (click)="nuevo()">
+      <app-icono nombre="mas" [tamano]="17" />
+      Nueva diapositiva
+    </button>
+  </div>
+</div>
+
+@if (cargando()) {
+  <p class="vacio-panel">Cargando carrusel...</p>
+} @else {
+  <div class="lista-slides">
+    @for (slide of slides(); track slide.id; let i = $index; let ultimo = $last) {
+      <article class="slide-admin" [class.inactiva]="!slide.activo">
+        <div class="slide-admin__vista">
+          @if (slide.imagen?.url) {
+            <img [src]="slide.imagen!.url" [alt]="slide.titulo" />
+          } @else {
+            <span class="slide-admin__sinimagen"><app-icono nombre="imagen" [tamano]="24" /></span>
+          }
+        </div>
+
+        <div class="slide-admin__texto">
+          <span class="slide-admin__subtitulo">{{ slide.subtitulo }}</span>
+          <h2>{{ slide.titulo }}</h2>
+          <p>{{ slide.texto }}</p>
+          @if (slide.cta_texto) {
+            <small>Boton: {{ slide.cta_texto }} &rarr; {{ slide.cta_url }}</small>
+          }
+        </div>
+
+        <div class="slide-admin__acciones">
+          <button
+            type="button"
+            class="etiqueta"
+            [class]="'etiqueta etiqueta--' + (slide.activo ? 'activo' : 'inactivo')"
+            (click)="alternarActivo(slide)"
+          >
+            {{ slide.activo ? 'Visible' : 'Oculta' }}
+          </button>
+
+          <div class="slide-admin__botones">
+            <button
+              type="button"
+              class="btn btn--icono btn--pequeno"
+              [disabled]="i === 0"
+              (click)="mover(slide, -1)"
+              aria-label="Subir"
+            >
+              <app-icono nombre="arriba" [tamano]="14" />
+            </button>
+            <button
+              type="button"
+              class="btn btn--icono btn--pequeno"
+              [disabled]="ultimo"
+              (click)="mover(slide, 1)"
+              aria-label="Bajar"
+            >
+              <app-icono nombre="abajo" [tamano]="14" />
+            </button>
+            <button type="button" class="btn btn--borde btn--pequeno" (click)="editar(slide)">
+              <app-icono nombre="editar" [tamano]="14" />
+              Editar
+            </button>
+            <button type="button" class="btn btn--peligro btn--pequeno" (click)="confirmando.set(slide)">
+              <app-icono nombre="basura" [tamano]="14" />
+            </button>
+          </div>
+        </div>
+      </article>
+    } @empty {
+      <p class="vacio-panel">
+        No hay diapositivas. Si deja el carrusel vacio, la portada muestra el nombre y el eslogan.
+      </p>
+    }
+  </div>
+}
+
+@if (abierto()) {
+  <div class="modal-fondo">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal__cabecera">
+        <h2>{{ editando() ? 'Editar diapositiva' : 'Nueva diapositiva' }}</h2>
+        <button type="button" class="btn btn--icono" (click)="cerrar()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" [tamano]="18" />
+        </button>
+      </div>
+
+      <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+        <div class="modal__cuerpo">
+          <div class="rejilla-campos">
+            <div class="campo-panel campo-panel--ancho">
+              <label for="titulo">Titulo *</label>
+              <input id="titulo" type="text" formControlName="titulo" />
+              @if (errorDe('titulo')) {
+                <small class="error-campo">{{ errorDe('titulo') }}</small>
+              }
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label for="subtitulo">Antetitulo</label>
+              <input id="subtitulo" type="text" formControlName="subtitulo" />
+              <small>Texto pequeno que aparece encima del titulo.</small>
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label for="texto">Texto</label>
+              <textarea id="texto" rows="3" formControlName="texto"></textarea>
+            </div>
+
+            <div class="campo-panel">
+              <label for="cta_texto">Texto del boton</label>
+              <input id="cta_texto" type="text" formControlName="cta_texto" />
+            </div>
+
+            <div class="campo-panel">
+              <label for="cta_url">Destino del boton</label>
+              <input id="cta_url" type="text" formControlName="cta_url" placeholder="/contacto" />
+              @if (errorDe('cta_url')) {
+                <small class="error-campo">{{ errorDe('cta_url') }}</small>
+              }
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <app-selector-medio
+                [(valor)]="imagenId"
+                [medioInicial]="imagenActual()"
+                etiqueta="Imagen de fondo"
+                ayuda="Recomendado 1920x1080 px. Se oscurece automaticamente para que el texto se lea."
+              />
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label class="interruptor">
+                <input type="checkbox" formControlName="activo" />
+                Visible en el carrusel
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal__pie">
+          <button type="button" class="btn btn--borde" (click)="cerrar()">Cancelar</button>
+          <button type="submit" class="btn btn--primario" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando...' : 'Guardar diapositiva' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (confirmando(); as objetivo) {
+  <div class="modal-fondo">
+    <div class="modal" style="max-width: 440px" role="alertdialog" aria-modal="true">
+      <div class="modal__cabecera"><h2>Eliminar diapositiva</h2></div>
+      <div class="modal__cuerpo">
+        <p>Se eliminara <strong>{{ objetivo.titulo }}</strong> del carrusel.</p>
+      </div>
+      <div class="modal__pie">
+        <button type="button" class="btn btn--borde" (click)="confirmando.set(null)">Cancelar</button>
+        <button type="button" class="btn btn--peligro" (click)="eliminar()">Si, eliminar</button>
+      </div>
+    </div>
+  </div>
+}

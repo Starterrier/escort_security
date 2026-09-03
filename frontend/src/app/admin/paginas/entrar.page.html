@@ -1,0 +1,78 @@
+<div class="acceso">
+  <div class="acceso__panel">
+    <div class="acceso__marca">
+      <app-icono nombre="shield" [tamano]="30" />
+      <div>
+        <strong>Escort Security Services</strong>
+        <small>Panel de administracion</small>
+      </div>
+    </div>
+
+    <h1>Iniciar sesion</h1>
+    <p class="acceso__intro">Ingrese con las credenciales que le entrego el administrador.</p>
+
+    @if (error()) {
+      <p class="acceso__error" role="alert">
+        <app-icono nombre="alerta" [tamano]="18" />
+        {{ error() }}
+      </p>
+    }
+
+    <form [formGroup]="formulario" (ngSubmit)="entrar()" novalidate>
+      <div class="campo-acceso">
+        <label for="email">Correo electronico</label>
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          autocomplete="username"
+          [class.invalido]="invalido('email')"
+        />
+        @if (invalido('email')) {
+          <small>Escriba un correo valido.</small>
+        }
+      </div>
+
+      <div class="campo-acceso">
+        <label for="clave">Contrasena</label>
+        <div class="campo-acceso__clave">
+          <input
+            id="clave"
+            [type]="verClave() ? 'text' : 'password'"
+            formControlName="clave"
+            autocomplete="current-password"
+            [class.invalido]="invalido('clave')"
+          />
+          <button
+            type="button"
+            (click)="alternarClave()"
+            [attr.aria-label]="verClave() ? 'Ocultar contrasena' : 'Mostrar contrasena'"
+          >
+            <app-icono [nombre]="verClave() ? 'cerrar' : 'search'" [tamano]="17" />
+          </button>
+        </div>
+        @if (invalido('clave')) {
+          <small>La contrasena debe tener al menos 6 caracteres.</small>
+        }
+      </div>
+
+      <button type="submit" class="boton boton--primario boton--bloque" [disabled]="enviando()">
+        {{ enviando() ? 'Verificando...' : 'Entrar al panel' }}
+      </button>
+    </form>
+
+    <a routerLink="/" class="acceso__volver">Volver al sitio web</a>
+  </div>
+
+  <aside class="acceso__lateral" aria-hidden="true">
+    <div>
+      <h2>Administre todo su sitio</h2>
+      <ul>
+        <li><app-icono nombre="cheque" [tamano]="18" /> Servicios, sectores y paginas</li>
+        <li><app-icono nombre="cheque" [tamano]="18" /> Imagenes y carrusel de portada</li>
+        <li><app-icono nombre="cheque" [tamano]="18" /> Colores, logo y datos de contacto</li>
+        <li><app-icono nombre="cheque" [tamano]="18" /> Solicitudes recibidas del formulario</li>
+      </ul>
+    </div>
+  </aside>
+</div>

@@ -1,0 +1,267 @@
+<div class="encabezado-panel">
+  <div>
+    <h1>Servicios</h1>
+    <p>Cree, edite y ordene los servicios que aparecen en el sitio.</p>
+  </div>
+
+  <div class="encabezado-panel__acciones">
+    <input
+      type="text"
+      class="buscador"
+      placeholder="Buscar servicio..."
+      [value]="filtro()"
+      (input)="actualizarFiltro($event)"
+    />
+    <button type="button" class="btn btn--primario" (click)="nuevo()">
+      <app-icono nombre="mas" [tamano]="17" />
+      Nuevo servicio
+    </button>
+  </div>
+</div>
+
+@if (cargando()) {
+  <p class="vacio-panel">Cargando servicios...</p>
+} @else {
+  <div class="tabla-envoltura">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th style="width: 70px">Orden</th>
+          <th>Servicio</th>
+          <th>Categoria</th>
+          <th>Estado</th>
+          <th style="width: 190px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (servicio of filtrados(); track servicio.id; let i = $index; let ultimo = $last) {
+          <tr>
+            <td>
+              <div class="orden">
+                <button
+                  type="button"
+                  class="btn btn--icono btn--pequeno"
+                  [disabled]="i === 0 || filtro() !== ''"
+                  (click)="mover(servicio, -1)"
+                  aria-label="Subir"
+                >
+                  <app-icono nombre="arriba" [tamano]="14" />
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--icono btn--pequeno"
+                  [disabled]="ultimo || filtro() !== ''"
+                  (click)="mover(servicio, 1)"
+                  aria-label="Bajar"
+                >
+                  <app-icono nombre="abajo" [tamano]="14" />
+                </button>
+              </div>
+            </td>
+
+            <td>
+              <div class="celda-servicio">
+                <span class="celda-servicio__icono">
+                  <app-icono [nombre]="servicio.icono" [tamano]="19" />
+                </span>
+                <div>
+                  <strong>{{ servicio.titulo }}</strong>
+                  <small>{{ servicio.resumen }}</small>
+                </div>
+                @if (servicio.destacado) {
+                  <span class="destacado" title="Aparece en la portada">Destacado</span>
+                }
+              </div>
+            </td>
+
+            <td>{{ servicio.categoria }}</td>
+
+            <td>
+              <button
+                type="button"
+                class="etiqueta"
+                [class]="'etiqueta etiqueta--' + (servicio.activo ? 'activo' : 'inactivo')"
+                (click)="alternarActivo(servicio)"
+                [title]="servicio.activo ? 'Clic para ocultar' : 'Clic para publicar'"
+              >
+                {{ servicio.activo ? 'Publicado' : 'Oculto' }}
+              </button>
+            </td>
+
+            <td>
+              <div class="tabla__acciones">
+                <button type="button" class="btn btn--borde btn--pequeno" (click)="editar(servicio)">
+                  <app-icono nombre="editar" [tamano]="15" />
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--peligro btn--pequeno"
+                  (click)="confirmarBorrado(servicio)"
+                  aria-label="Eliminar"
+                >
+                  <app-icono nombre="basura" [tamano]="15" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="vacio-panel">No hay servicios que coincidan con la busqueda.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+<!-- ======================= Formulario ======================= -->
+@if (formularioAbierto()) {
+  <div class="modal-fondo">
+    <div class="modal modal--ancho" role="dialog" aria-modal="true" aria-labelledby="titulo-form">
+      <div class="modal__cabecera">
+        <h2 id="titulo-form">{{ editando() ? 'Editar servicio' : 'Nuevo servicio' }}</h2>
+        <button type="button" class="btn btn--icono" (click)="cerrarFormulario()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" [tamano]="18" />
+        </button>
+      </div>
+
+      <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+        <div class="modal__cuerpo">
+          <div class="rejilla-campos">
+            <div class="campo-panel campo-panel--ancho">
+              <label for="titulo">Titulo *</label>
+              <input id="titulo" type="text" formControlName="titulo" />
+              @if (errorDe('titulo')) {
+                <small class="error-campo">{{ errorDe('titulo') }}</small>
+              }
+            </div>
+
+            <div class="campo-panel">
+              <label for="categoria">Categoria</label>
+              <input id="categoria" type="text" formControlName="categoria" />
+              <small>Agrupa los servicios en el filtro de la pagina publica.</small>
+            </div>
+
+            <div class="campo-panel">
+              <label for="slug">URL (slug)</label>
+              <input id="slug" type="text" formControlName="slug" placeholder="se genera del titulo" />
+              @if (errorDe('slug')) {
+                <small class="error-campo">{{ errorDe('slug') }}</small>
+              }
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label for="resumen">Resumen</label>
+              <textarea id="resumen" rows="2" formControlName="resumen"></textarea>
+              <small>Texto corto que se ve en las tarjetas del sitio (maximo 400 caracteres).</small>
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label for="descripcion">Descripcion completa</label>
+              <textarea id="descripcion" rows="7" formControlName="descripcion"></textarea>
+              <small>
+                Admite HTML basico: &lt;p&gt;, &lt;h3&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;.
+              </small>
+            </div>
+
+            <div class="campo-panel">
+              <label for="icono">Icono</label>
+              <select id="icono" formControlName="icono">
+                @for (icono of iconos; track icono) {
+                  <option [value]="icono">{{ icono }}</option>
+                }
+              </select>
+              <span class="vista-icono">
+                <app-icono [nombre]="formulario.controls.icono.value" [tamano]="22" />
+              </span>
+            </div>
+
+            <div class="campo-panel">
+              <app-selector-medio
+                [(valor)]="imagenId"
+                [medioInicial]="imagenActual()"
+                etiqueta="Imagen del servicio"
+                ayuda="Se usa en la cabecera del detalle."
+              />
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label>Que incluye</label>
+              <div class="items">
+                @for (control of items(); track $index; let i = $index) {
+                  <div class="items__fila">
+                    <input type="text" [formControl]="control" placeholder="Ej. Vigilancia fija con armas" />
+                    <button
+                      type="button"
+                      class="btn btn--peligro btn--icono"
+                      (click)="quitarItem(i)"
+                      aria-label="Quitar"
+                    >
+                      <app-icono nombre="basura" [tamano]="15" />
+                    </button>
+                  </div>
+                }
+                <button type="button" class="btn btn--borde btn--pequeno" (click)="agregarItem()">
+                  <app-icono nombre="mas" [tamano]="15" />
+                  Agregar punto
+                </button>
+              </div>
+            </div>
+
+            <div class="campo-panel">
+              <label for="meta_titulo">Titulo SEO</label>
+              <input id="meta_titulo" type="text" formControlName="meta_titulo" />
+            </div>
+
+            <div class="campo-panel">
+              <label for="meta_descripcion">Descripcion SEO</label>
+              <input id="meta_descripcion" type="text" formControlName="meta_descripcion" />
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <div class="interruptores">
+                <label class="interruptor">
+                  <input type="checkbox" formControlName="activo" />
+                  Publicado en el sitio
+                </label>
+                <label class="interruptor">
+                  <input type="checkbox" formControlName="destacado" />
+                  Mostrar en la portada
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal__pie">
+          <button type="button" class="btn btn--borde" (click)="cerrarFormulario()">Cancelar</button>
+          <button type="submit" class="btn btn--primario" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando...' : 'Guardar servicio' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- ==================== Confirmar borrado ==================== -->
+@if (confirmandoBorrado(); as objetivo) {
+  <div class="modal-fondo">
+    <div class="modal" style="max-width: 440px" role="alertdialog" aria-modal="true">
+      <div class="modal__cabecera">
+        <h2>Eliminar servicio</h2>
+      </div>
+      <div class="modal__cuerpo">
+        <p>
+          Se eliminara <strong>{{ objetivo.titulo }}</strong> de forma permanente, junto con sus
+          puntos de alcance. Esta accion no se puede deshacer.
+        </p>
+      </div>
+      <div class="modal__pie">
+        <button type="button" class="btn btn--borde" (click)="cancelarBorrado()">Cancelar</button>
+        <button type="button" class="btn btn--peligro" (click)="eliminar()">Si, eliminar</button>
+      </div>
+    </div>
+  </div>
+}

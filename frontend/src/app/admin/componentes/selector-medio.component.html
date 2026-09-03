@@ -1,0 +1,86 @@
+<div class="selector">
+  <label class="selector__etiqueta">{{ etiqueta() }}</label>
+
+  <div class="selector__caja">
+    @if (seleccionado(); as medio) {
+      <img [src]="medio.url" [alt]="medio.alt || medio.nombre_original" class="selector__vista" />
+      <div class="selector__info">
+        <strong>{{ medio.nombre_original }}</strong>
+        <small>{{ medio.ancho }}x{{ medio.alto }} px</small>
+      </div>
+      <div class="selector__acciones">
+        <button type="button" class="btn btn--borde btn--pequeno" (click)="abrir()">Cambiar</button>
+        <button type="button" class="btn btn--peligro btn--pequeno" (click)="quitar()">Quitar</button>
+      </div>
+    } @else {
+      <button type="button" class="selector__vacio" (click)="abrir()">
+        <app-icono nombre="imagen" [tamano]="26" />
+        <span>Elegir o subir una imagen</span>
+      </button>
+    }
+  </div>
+
+  @if (ayuda()) {
+    <small class="selector__ayuda">{{ ayuda() }}</small>
+  }
+</div>
+
+@if (abierto()) {
+  <div class="modal-fondo" (click)="cerrar()">
+    <div class="modal modal--ancho" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="modal__cabecera">
+        <h2>Biblioteca de imagenes</h2>
+        <button type="button" class="btn btn--icono" (click)="cerrar()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" [tamano]="18" />
+        </button>
+      </div>
+
+      <div class="modal__cuerpo">
+        <div class="biblioteca__barra">
+          <input
+            type="text"
+            placeholder="Buscar por nombre o texto alternativo"
+            (input)="buscar($event)"
+          />
+
+          <label class="btn btn--primario">
+            {{ subiendo() ? 'Subiendo...' : 'Subir imagen' }}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif,application/pdf"
+              hidden
+              [disabled]="subiendo()"
+              (change)="alSubir($event)"
+            />
+          </label>
+        </div>
+
+        @if (cargando()) {
+          <p class="vacio-panel">Cargando biblioteca...</p>
+        } @else {
+          <div class="biblioteca__rejilla">
+            @for (medio of biblioteca(); track medio.id) {
+              <button
+                type="button"
+                class="biblioteca__item"
+                [class.activo]="medio.id === valor()"
+                (click)="elegir(medio)"
+              >
+                @if (medio.mime.startsWith('image/')) {
+                  <img [src]="medio.url" [alt]="medio.alt || medio.nombre_original" loading="lazy" />
+                } @else {
+                  <span class="biblioteca__archivo"><app-icono nombre="documento" [tamano]="26" /></span>
+                }
+                <span class="biblioteca__nombre">{{ medio.nombre_original }}</span>
+              </button>
+            } @empty {
+              <p class="vacio-panel">
+                Aun no hay imagenes en la biblioteca. Use el boton "Subir imagen".
+              </p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

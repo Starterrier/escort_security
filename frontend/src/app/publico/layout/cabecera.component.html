@@ -1,0 +1,78 @@
+@let a = sitio.ajustes();
+
+<!-- Franja superior con los datos de contacto -->
+<div class="franja">
+  <div class="contenedor franja__interior">
+    <span class="franja__licencia">{{ a.sitio_licencia }}</span>
+
+    <div class="franja__contactos">
+      @if (a.contacto_telefono) {
+        <a [href]="a.telefono_url" class="franja__enlace">
+          <app-icono nombre="telefono" [tamano]="15" />
+          {{ a.contacto_telefono }}
+        </a>
+      }
+      @if (a.contacto_email) {
+        <a [href]="'mailto:' + a.contacto_email" class="franja__enlace">
+          <app-icono nombre="correo" [tamano]="15" />
+          {{ a.contacto_email }}
+        </a>
+      }
+    </div>
+  </div>
+</div>
+
+<header class="cabecera" [class.cabecera--compacta]="compacta()">
+  <div class="contenedor cabecera__interior">
+    <a routerLink="/" class="marca" [attr.aria-label]="a.sitio_nombre">
+      @if (a.sitio_logo) {
+        <img [src]="a.sitio_logo" [alt]="a.sitio_nombre" class="marca__logo" />
+      } @else {
+        <span class="marca__emblema" aria-hidden="true">
+          <app-icono nombre="shield" [tamano]="26" />
+        </span>
+        <span class="marca__texto">
+          <strong>{{ a.sitio_nombre }}</strong>
+          <small>{{ a.sitio_eslogan }}</small>
+        </span>
+      }
+    </a>
+
+    <button
+      type="button"
+      class="alternador"
+      (click)="alternarMenu()"
+      [attr.aria-expanded]="menuAbierto()"
+      aria-controls="menu-principal"
+      [attr.aria-label]="menuAbierto() ? 'Cerrar menu' : 'Abrir menu'"
+    >
+      <app-icono [nombre]="menuAbierto() ? 'cerrar' : 'menu'" [tamano]="26" />
+    </button>
+
+    <nav
+      id="menu-principal"
+      class="navegacion"
+      [class.navegacion--abierta]="menuAbierto()"
+      aria-label="Menu principal"
+    >
+      <ul class="navegacion__lista">
+        @for (enlace of sitio.menu(); track enlace.ruta) {
+          <li>
+            <a
+              [routerLink]="enlace.ruta"
+              routerLinkActive="activo"
+              [routerLinkActiveOptions]="{ exact: enlace.ruta === '/' }"
+              class="navegacion__enlace"
+            >
+              {{ enlace.etiqueta }}
+            </a>
+          </li>
+        }
+      </ul>
+
+      <a routerLink="/contacto" class="boton boton--primario navegacion__cta">
+        Solicitar cotizacion
+      </a>
+    </nav>
+  </div>
+</header>

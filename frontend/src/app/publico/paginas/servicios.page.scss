@@ -1,0 +1,134 @@
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 44px;
+}
+
+.filtro {
+  padding: 9px 20px;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--texto-suave);
+  font-size: 0.87rem;
+  font-weight: 600;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+
+  &:hover {
+    border-color: var(--color-secundario);
+    color: var(--color-secundario);
+  }
+
+  &--activo {
+    background: var(--color-primario);
+    border-color: var(--color-primario);
+    color: #fff;
+  }
+}
+
+.lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 26px;
+}
+
+.ficha {
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  transition:
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
+
+  &:hover {
+    border-color: transparent;
+    box-shadow: var(--sombra-lg);
+  }
+
+  &__cabecera {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  &__icono {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(var(--secundario-rgb), 0.12);
+    color: var(--color-secundario);
+    flex-shrink: 0;
+  }
+
+  &__categoria {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-secundario);
+  }
+
+  &__titulo {
+    margin: 4px 0 0;
+    font-size: 1.24rem;
+    color: var(--color-primario);
+  }
+
+  &__resumen {
+    color: var(--texto-suave);
+    font-size: 0.96rem;
+  }
+
+  &__items {
+    margin: 8px 0 24px;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9rem;
+    color: var(--texto-suave);
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-bottom: 7px;
+    }
+
+    app-icono {
+      margin-top: 3px;
+      color: var(--color-secundario);
+      flex-shrink: 0;
+    }
+  }
+
+  &__boton {
+    margin-top: auto;
+    align-self: flex-start;
+  }
+}
+
+.vacio {
+  padding: 40px;
+  text-align: center;
+  color: var(--texto-tenue);
+}
+
+.cierre {
+  text-align: center;
+
+  .entradilla {
+    max-width: 60ch;
+    margin-inline: auto;
+    margin-bottom: 28px;
+  }
+}

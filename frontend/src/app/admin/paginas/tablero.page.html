@@ -1,0 +1,79 @@
+<div class="encabezado-panel">
+  <div>
+    <h1>Hola, {{ auth.usuario()?.nombre }}</h1>
+    <p>Este es el estado actual del sitio web.</p>
+  </div>
+
+  <div class="encabezado-panel__acciones">
+    <a href="/" target="_blank" rel="noopener" class="btn btn--borde">
+      <app-icono nombre="flecha" [tamano]="17" />
+      Ver el sitio
+    </a>
+    <a routerLink="/admin/servicios" class="btn btn--primario">
+      <app-icono nombre="mas" [tamano]="17" />
+      Nuevo servicio
+    </a>
+  </div>
+</div>
+
+@if (cargando()) {
+  <p class="vacio-panel">Cargando resumen...</p>
+} @else {
+  <div class="tarjetas-resumen">
+    @for (tarjeta of tarjetas(); track tarjeta.etiqueta) {
+      <a [routerLink]="tarjeta.ruta" class="resumen" [class.resumen--destacada]="tarjeta.destacar">
+        <span class="resumen__icono"><app-icono [nombre]="tarjeta.icono" [tamano]="22" /></span>
+        <strong class="resumen__valor">{{ tarjeta.valor }}</strong>
+        <span class="resumen__etiqueta">{{ tarjeta.etiqueta }}</span>
+      </a>
+    }
+  </div>
+
+  <div class="tablero">
+    <section class="tarjeta-panel">
+      <h2 class="tarjeta-panel__titulo">Solicitudes de los ultimos 14 dias</h2>
+
+      @if (barras().length) {
+        <div class="grafico">
+          @for (barra of barras(); track barra.dia) {
+            <div class="grafico__columna" [title]="barra.dia + ': ' + barra.total">
+              <div class="grafico__barra" [style.height.%]="barra.altura">
+                <span>{{ barra.total }}</span>
+              </div>
+              <small>{{ barra.dia | date: 'dd/MM' }}</small>
+            </div>
+          }
+        </div>
+      } @else {
+        <p class="vacio-panel">Aun no se han recibido solicitudes.</p>
+      }
+    </section>
+
+    <section class="tarjeta-panel">
+      <h2 class="tarjeta-panel__titulo">Ultimas solicitudes</h2>
+
+      @if (resumen()?.ultimas_solicitudes?.length) {
+        <ul class="ultimas">
+          @for (solicitud of resumen()!.ultimas_solicitudes; track solicitud.id) {
+            <li>
+              <div>
+                <strong>{{ solicitud.nombre }}</strong>
+                <small>{{ solicitud.empresa || solicitud.email }}</small>
+              </div>
+              <div class="ultimas__meta">
+                <span class="etiqueta" [class]="'etiqueta etiqueta--' + solicitud.estado">
+                  {{ solicitud.estado }}
+                </span>
+                <small>{{ solicitud.creado_en | date: 'dd/MM/yy' }}</small>
+              </div>
+            </li>
+          }
+        </ul>
+
+        <a routerLink="/admin/solicitudes" class="btn btn--borde">Ver todas las solicitudes</a>
+      } @else {
+        <p class="vacio-panel">Sin solicitudes por ahora.</p>
+      }
+    </section>
+  </div>
+}

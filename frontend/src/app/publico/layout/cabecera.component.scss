@@ -1,0 +1,208 @@
+:host {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: block;
+}
+
+/* --- Franja de contacto --------------------------------------------- */
+
+.franja {
+  background: var(--color-primario);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.8rem;
+
+  &__interior {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 38px;
+    flex-wrap: wrap;
+  }
+
+  &__licencia {
+    letter-spacing: 0.02em;
+  }
+
+  &__contactos {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  &__enlace {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: inherit;
+    font-weight: 500;
+
+    &:hover {
+      color: #fff;
+    }
+  }
+}
+
+@media (max-width: 720px) {
+  .franja__licencia {
+    display: none;
+  }
+}
+
+/* --- Barra principal -------------------------------------------------- */
+
+.cabecera {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--borde);
+  transition:
+    box-shadow 0.25s ease,
+    padding 0.25s ease;
+
+  &--compacta {
+    box-shadow: var(--sombra);
+  }
+
+  &__interior {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: var(--cabecera);
+  }
+}
+
+/* --- Marca ------------------------------------------------------------ */
+
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-primario);
+  flex-shrink: 0;
+
+  &__logo {
+    max-height: 50px;
+    width: auto;
+  }
+
+  &__emblema {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--color-primario);
+    color: #fff;
+  }
+
+  &__texto {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+
+    strong {
+      font-size: 1.02rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    small {
+      font-size: 0.72rem;
+      color: var(--texto-tenue);
+      max-width: 220px;
+    }
+  }
+}
+
+/* --- Navegacion -------------------------------------------------------- */
+
+.navegacion {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+
+  &__lista {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__enlace {
+    display: block;
+    padding: 9px 13px;
+    border-radius: 8px;
+    color: var(--color-texto);
+    font-size: 0.93rem;
+    font-weight: 600;
+
+    &:hover {
+      background: var(--color-fondo-alt);
+      color: var(--color-primario);
+    }
+
+    &.activo {
+      color: var(--color-secundario);
+    }
+  }
+
+  &__cta {
+    padding: 11px 22px;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+}
+
+.alternador {
+  display: none;
+  padding: 8px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--color-primario);
+}
+
+@media (max-width: 1040px) {
+  .alternador {
+    display: inline-flex;
+  }
+
+  .navegacion {
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 16px 24px 24px;
+    background: #fff;
+    border-bottom: 1px solid var(--borde);
+    box-shadow: var(--sombra-lg);
+
+    /* Oculto pero animable: se despliega al abrir el menu. */
+    display: none;
+
+    &--abierta {
+      display: flex;
+    }
+
+    &__lista {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 2px;
+    }
+
+    &__enlace {
+      padding: 12px 14px;
+      font-size: 1rem;
+    }
+
+    &__cta {
+      margin-top: 10px;
+    }
+  }
+}

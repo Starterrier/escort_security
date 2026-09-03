@@ -1,0 +1,199 @@
+<div class="encabezado-panel">
+  <div>
+    <h1>Paginas</h1>
+    <p>Contenido editable: Nosotros, responsabilidad social, politicas y las que necesite crear.</p>
+  </div>
+
+  <div class="encabezado-panel__acciones">
+    <button type="button" class="btn btn--primario" (click)="nuevo()">
+      <app-icono nombre="mas" [tamano]="17" />
+      Nueva pagina
+    </button>
+  </div>
+</div>
+
+@if (cargando()) {
+  <p class="vacio-panel">Cargando paginas...</p>
+} @else {
+  <div class="tabla-envoltura">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Pagina</th>
+          <th>Direccion</th>
+          <th>Estado</th>
+          <th style="width: 210px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (pagina of paginas(); track pagina.id) {
+          <tr>
+            <td>
+              <strong>{{ pagina.titulo }}</strong>
+              @if (pagina.subtitulo) {
+                <small class="subtitulo-celda">{{ pagina.subtitulo }}</small>
+              }
+              @if (pagina.sistema) {
+                <span class="sistema" title="Pagina del sistema: no se puede eliminar">Sistema</span>
+              }
+              @if (pagina.en_menu) {
+                <span class="en-menu" title="Aparece en el menu principal">En el menu</span>
+              }
+            </td>
+
+            <td>
+              <a [href]="urlPublica(pagina)" target="_blank" rel="noopener" class="ruta">
+                {{ urlPublica(pagina) }}
+              </a>
+            </td>
+
+            <td>
+              <button
+                type="button"
+                class="etiqueta"
+                [class]="'etiqueta etiqueta--' + (pagina.activo ? 'activo' : 'inactivo')"
+                (click)="alternarActivo(pagina)"
+              >
+                {{ pagina.activo ? 'Publicada' : 'Oculta' }}
+              </button>
+            </td>
+
+            <td>
+              <div class="tabla__acciones">
+                <button type="button" class="btn btn--borde btn--pequeno" (click)="editar(pagina)">
+                  <app-icono nombre="editar" [tamano]="15" />
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--peligro btn--pequeno"
+                  [disabled]="!!pagina.sistema"
+                  (click)="confirmando.set(pagina)"
+                  aria-label="Eliminar"
+                >
+                  <app-icono nombre="basura" [tamano]="15" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="4" class="vacio-panel">Aun no hay paginas.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (abierto()) {
+  <div class="modal-fondo">
+    <div class="modal modal--ancho" role="dialog" aria-modal="true">
+      <div class="modal__cabecera">
+        <h2>{{ editando() ? 'Editar pagina' : 'Nueva pagina' }}</h2>
+        <button type="button" class="btn btn--icono" (click)="cerrar()" aria-label="Cerrar">
+          <app-icono nombre="cerrar" [tamano]="18" />
+        </button>
+      </div>
+
+      <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+        <div class="modal__cuerpo">
+          <div class="rejilla-campos">
+            <div class="campo-panel">
+              <label for="titulo">Titulo *</label>
+              <input id="titulo" type="text" formControlName="titulo" />
+              @if (errorDe('titulo')) {
+                <small class="error-campo">{{ errorDe('titulo') }}</small>
+              }
+            </div>
+
+            <div class="campo-panel">
+              <label for="slug">Direccion (slug)</label>
+              <input
+                id="slug"
+                type="text"
+                formControlName="slug"
+                [attr.readonly]="editando()?.sistema ? true : null"
+              />
+              @if (editando()?.sistema) {
+                <small>La direccion de las paginas del sistema no se puede cambiar.</small>
+              }
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label for="subtitulo">Subtitulo</label>
+              <input id="subtitulo" type="text" formControlName="subtitulo" />
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <label for="contenido">Contenido</label>
+              <textarea id="contenido" rows="14" formControlName="contenido"></textarea>
+              <small>
+                Admite HTML: &lt;p&gt;, &lt;h3&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;strong&gt;,
+                &lt;blockquote&gt;, &lt;img&gt;, &lt;table&gt;.
+              </small>
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <app-selector-medio
+                [(valor)]="imagenId"
+                [medioInicial]="imagenActual()"
+                etiqueta="Imagen de cabecera"
+              />
+            </div>
+
+            <div class="campo-panel">
+              <label for="meta_titulo">Titulo SEO</label>
+              <input id="meta_titulo" type="text" formControlName="meta_titulo" />
+            </div>
+
+            <div class="campo-panel">
+              <label for="meta_descripcion">Descripcion SEO</label>
+              <input id="meta_descripcion" type="text" formControlName="meta_descripcion" />
+            </div>
+
+            <div class="campo-panel">
+              <label for="orden">Orden en el menu</label>
+              <input id="orden" type="number" formControlName="orden" />
+            </div>
+
+            <div class="campo-panel campo-panel--ancho">
+              <div class="interruptores-pagina">
+                <label class="interruptor">
+                  <input type="checkbox" formControlName="activo" />
+                  Publicada en el sitio
+                </label>
+                <label class="interruptor">
+                  <input type="checkbox" formControlName="en_menu" />
+                  Mostrar en el menu principal
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal__pie">
+          <button type="button" class="btn btn--borde" (click)="cerrar()">Cancelar</button>
+          <button type="submit" class="btn btn--primario" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando...' : 'Guardar pagina' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+@if (confirmando(); as objetivo) {
+  <div class="modal-fondo">
+    <div class="modal" style="max-width: 440px" role="alertdialog" aria-modal="true">
+      <div class="modal__cabecera"><h2>Eliminar pagina</h2></div>
+      <div class="modal__cuerpo">
+        <p>Se eliminara <strong>{{ objetivo.titulo }}</strong> de forma permanente.</p>
+      </div>
+      <div class="modal__pie">
+        <button type="button" class="btn btn--borde" (click)="confirmando.set(null)">Cancelar</button>
+        <button type="button" class="btn btn--peligro" (click)="eliminar()">Si, eliminar</button>
+      </div>
+    </div>
+  </div>
+}

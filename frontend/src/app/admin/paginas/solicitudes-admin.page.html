@@ -1,0 +1,185 @@
+<div class="encabezado-panel">
+  <div>
+    <h1>Solicitudes</h1>
+    <p>Mensajes recibidos desde el formulario de contacto del sitio.</p>
+  </div>
+
+  <div class="encabezado-panel__acciones">
+    <input
+      type="text"
+      class="buscador"
+      placeholder="Buscar por nombre, correo o empresa..."
+      [value]="busqueda()"
+      (input)="buscar($event)"
+    />
+  </div>
+</div>
+
+<div class="filtros-estado">
+  <button
+    type="button"
+    class="filtro-estado"
+    [class.activo]="filtroEstado() === ''"
+    (click)="filtrarPorEstado('')"
+  >
+    Todas
+  </button>
+  @for (estado of estados; track estado) {
+    <button
+      type="button"
+      class="filtro-estado"
+      [class.activo]="filtroEstado() === estado"
+      (click)="filtrarPorEstado(estado)"
+    >
+      {{ etiquetas[estado] }}
+    </button>
+  }
+</div>
+
+@if (cargando()) {
+  <p class="vacio-panel">Cargando solicitudes...</p>
+} @else {
+  <div class="tabla-envoltura">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Contacto</th>
+          <th>Empresa</th>
+          <th>Servicio</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th style="width: 120px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (solicitud of solicitudes(); track solicitud.id) {
+          <tr [class.sin-leer]="solicitud.estado === 'nueva'">
+            <td>
+              <strong>{{ solicitud.nombre }}</strong>
+              <small class="secundario">{{ solicitud.email }}</small>
+              @if (solicitud.telefono) {
+                <small class="secundario">{{ solicitud.telefono }}</small>
+              }
+            </td>
+            <td>{{ solicitud.empresa || '-' }}</td>
+            <td>{{ solicitud.servicio_titulo || '-' }}</td>
+            <td>
+              <select
+                class="selector-estado"
+                [ngModel]="solicitud.estado"
+                (ngModelChange)="cambiarEstado(solicitud, $event)"
+              >
+                @for (estado of estados; track estado) {
+                  <option [value]="estado">{{ etiquetas[estado] }}</option>
+                }
+              </select>
+            </td>
+            <td>{{ solicitud.creado_en | date: 'dd/MM/yy HH:mm' }}</td>
+            <td>
+              <div class="tabla__acciones">
+                <button type="button" class="btn btn--borde btn--pequeno" (click)="abrir(solicitud)">
+                  Ver
+                </button>
+                <button
+                  type="button"
+                  class="btn btn--peligro btn--pequeno"
+                  (click)="confirmando.set(solicitud)"
+                  aria-label="Eliminar"
+                >
+                  <app-icono nombre="basura" [tamano]="14" />
+                </button>
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="vacio-panel">No hay solicitudes con estos criterios.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (meta(); as m) {
+    @if (m.paginas > 1) {
+      <nav class="paginacion" aria-label="Paginas">
+        @for (n of numerosPagina(); track n) {
+          <button
+            type="button"
+            class="paginacion__boton"
+            [class.activa]="n === m.pagina"
+            (click)="irAPagina(n)"
+          >
+            {{ n }}
+          </button>
+        }
+      </nav>
+    }
+  }
+}
+
+@if (detalle(); as solicitud) {
+  <div class="modal-fondo" (click)="detalle.set(null)">
+    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="modal__cabecera">
+        <h2>Solicitud de {{ solicitud.nombre }}</h2>
+        <button type="button" class="btn btn--icono" (click)="detalle.set(null)" aria-label="Cerrar">
+          <app-icono nombre="cerrar" [tamano]="18" />
+        </button>
+      </div>
+
+      <div class="modal__cuerpo">
+        <dl class="ficha-solicitud">
+          <dt>Correo</dt>
+          <dd><a [href]="enlaceCorreo(solicitud)">{{ solicitud.email }}</a></dd>
+          <dt>Telefono</dt>
+          <dd>{{ solicitud.telefono || '-' }}</dd>
+          <dt>Empresa</dt>
+          <dd>{{ solicitud.empresa || '-' }}</dd>
+          <dt>Ciudad</dt>
+          <dd>{{ solicitud.ciudad || '-' }}</dd>
+          <dt>Servicio</dt>
+          <dd>{{ solicitud.servicio_titulo || 'No especificado' }}</dd>
+          <dt>Recibida</dt>
+          <dd>{{ solicitud.creado_en | date: 'dd/MM/yyyy HH:mm' }}</dd>
+        </dl>
+
+        <div class="mensaje-solicitud">
+          <span>Mensaje</span>
+          <p>{{ solicitud.mensaje }}</p>
+        </div>
+
+        <div class="campo-panel">
+          <label for="notas">Notas internas</label>
+          <textarea
+            id="notas"
+            rows="4"
+            [ngModel]="notasEditadas()"
+            (ngModelChange)="notasEditadas.set($event)"
+            placeholder="Registro del seguimiento comercial..."
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="modal__pie">
+        <a [href]="enlaceCorreo(solicitud)" class="btn btn--borde">Responder por correo</a>
+        <button type="button" class="btn btn--primario" (click)="guardarNotas()">Guardar notas</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmando(); as objetivo) {
+  <div class="modal-fondo">
+    <div class="modal" style="max-width: 440px" role="alertdialog" aria-modal="true">
+      <div class="modal__cabecera"><h2>Eliminar solicitud</h2></div>
+      <div class="modal__cuerpo">
+        <p>Se eliminara la solicitud de <strong>{{ objetivo.nombre }}</strong> de forma permanente.</p>
+      </div>
+      <div class="modal__pie">
+        <button type="button" class="btn btn--borde" (click)="confirmando.set(null)">Cancelar</button>
+        <button type="button" class="btn btn--peligro" (click)="eliminar()">Si, eliminar</button>
+      </div>
+    </div>
+  </div>
+}

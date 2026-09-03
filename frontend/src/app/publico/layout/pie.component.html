@@ -1,0 +1,99 @@
+@let a = sitio.ajustes();
+
+<footer class="pie">
+  <div class="contenedor pie__rejilla">
+    <div class="pie__columna pie__columna--marca">
+      <a routerLink="/" class="pie__marca">
+        @if (a.sitio_logo) {
+          <img [src]="a.sitio_logo" [alt]="a.sitio_nombre" />
+        } @else {
+          <app-icono nombre="shield" [tamano]="30" />
+          <strong>{{ a.sitio_nombre }}</strong>
+        }
+      </a>
+
+      <p class="pie__descripcion">{{ a.seo_descripcion }}</p>
+
+      @if (a.sitio_licencia) {
+        <p class="pie__licencia">{{ a.sitio_licencia }}</p>
+      }
+
+      @if (redes().length) {
+        <ul class="pie__redes">
+          @for (red of redes(); track red.nombre) {
+            <li>
+              <a [href]="red.url" target="_blank" rel="noopener noreferrer">{{ red.nombre }}</a>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="pie__columna">
+      <h4 class="pie__titulo">Servicios</h4>
+      <ul class="pie__lista">
+        @for (servicio of serviciosPie(); track servicio.id) {
+          <li>
+            <a [routerLink]="['/servicios', servicio.slug]">{{ servicio.titulo }}</a>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <div class="pie__columna">
+      <h4 class="pie__titulo">Empresa</h4>
+      <ul class="pie__lista">
+        <li><a routerLink="/nosotros">Nosotros</a></li>
+        <li><a routerLink="/servicios">Servicios</a></li>
+        <li><a routerLink="/sectores">Sectores</a></li>
+        <li><a routerLink="/contacto">Contacto</a></li>
+        <li>
+          <a routerLink="/pagina/politica-de-tratamiento-de-datos">Tratamiento de datos</a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="pie__columna">
+      <h4 class="pie__titulo">Contacto</h4>
+      <ul class="pie__contacto">
+        @if (a.contacto_direccion) {
+          <li>
+            <app-icono nombre="ubicacion" [tamano]="17" />
+            <span>{{ a.contacto_direccion }}<br />{{ a.contacto_ciudad }}</span>
+          </li>
+        }
+        @if (a.contacto_telefono) {
+          <li>
+            <app-icono nombre="telefono" [tamano]="17" />
+            <a [href]="a.telefono_url">{{ a.contacto_telefono }}</a>
+          </li>
+        }
+        @if (a.whatsapp_url) {
+          <li>
+            <app-icono nombre="whatsapp" [tamano]="17" />
+            <a [href]="a.whatsapp_url" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          </li>
+        }
+        @if (a.contacto_email) {
+          <li>
+            <app-icono nombre="correo" [tamano]="17" />
+            <a [href]="'mailto:' + a.contacto_email">{{ a.contacto_email }}</a>
+          </li>
+        }
+        @if (a.contacto_horario) {
+          <li>
+            <app-icono nombre="reloj" [tamano]="17" />
+            <span>{{ a.contacto_horario }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+  </div>
+
+  <div class="pie__base">
+    <div class="contenedor pie__base-interior">
+      <p>&copy; {{ anio }} {{ a.sitio_razon_social || a.sitio_nombre }}. Todos los derechos reservados.</p>
+      <a routerLink="/admin" class="pie__admin">Acceso administrativo</a>
+    </div>
+  </div>
+</footer>

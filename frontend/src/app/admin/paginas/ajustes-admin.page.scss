@@ -1,0 +1,127 @@
+.ajustes {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+
+  &__pestanas {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid var(--panel-borde, #e3e8ef);
+    border-radius: 14px;
+  }
+
+  &__pestana {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 11px 14px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--texto-suave);
+    text-align: left;
+
+    &:hover {
+      background: #f6f8fb;
+    }
+
+    &.activa {
+      background: var(--color-primario);
+      color: #fff;
+    }
+  }
+
+  &__descripcion {
+    margin: -4px 0 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--panel-borde, #e3e8ef);
+    font-size: 0.88rem;
+    color: var(--texto-tenue);
+  }
+
+  &__pie {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 1px solid var(--panel-borde, #e3e8ef);
+  }
+}
+
+.color {
+  display: flex;
+  gap: 8px;
+
+  input[type='color'] {
+    width: 52px;
+    height: 42px;
+    padding: 3px;
+    border: 1px solid var(--panel-borde, #e3e8ef);
+    border-radius: 9px;
+    background: #fff;
+    cursor: pointer;
+  }
+
+  &__hex {
+    flex: 1;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-transform: lowercase;
+  }
+}
+
+.json {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.83rem;
+}
+
+.previsualizacion {
+  margin-top: 26px;
+
+  &__titulo {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--texto-tenue);
+  }
+
+  &__muestra {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 26px;
+    color: #fff;
+  }
+
+  &__boton {
+    padding: 10px 22px;
+    color: #fff;
+    font-size: 0.87rem;
+    font-weight: 700;
+  }
+}
+
+@media (max-width: 900px) {
+  .ajustes {
+    grid-template-columns: 1fr;
+  }
+
+  .ajustes__pestanas {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .ajustes__pestana {
+    white-space: nowrap;
+  }
+}

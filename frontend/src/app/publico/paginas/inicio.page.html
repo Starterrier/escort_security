@@ -1,0 +1,191 @@
+@let a = sitio.ajustes();
+@let slide = slideActual();
+
+<!-- ============================ Portada ============================ -->
+<section class="portada">
+  @if (slide?.imagen?.url) {
+    <img class="portada__imagen" [src]="slide!.imagen!.url" [alt]="slide!.imagen!.alt || slide!.titulo" />
+  }
+  <div class="portada__velo"></div>
+
+  <div class="contenedor portada__interior">
+    @if (slide) {
+      <p class="portada__antetitulo">{{ slide.subtitulo }}</p>
+      <h1 class="portada__titulo">{{ slide.titulo }}</h1>
+      @if (slide.texto) {
+        <p class="portada__texto">{{ slide.texto }}</p>
+      }
+
+      <div class="portada__acciones">
+        @if (slide.cta_texto && slide.cta_url) {
+          <a [routerLink]="slide.cta_url" class="boton boton--primario">
+            {{ slide.cta_texto }}
+            <app-icono nombre="flecha" [tamano]="18" />
+          </a>
+        }
+        @if (a.portafolio_url) {
+          <a [href]="a.portafolio_url" target="_blank" rel="noopener" class="boton boton--claro">
+            <app-icono nombre="descargar" [tamano]="18" />
+            Descargar portafolio
+          </a>
+        }
+      </div>
+    } @else {
+      <h1 class="portada__titulo">{{ a.sitio_nombre }}</h1>
+      <p class="portada__texto">{{ a.sitio_eslogan }}</p>
+      <a routerLink="/contacto" class="boton boton--primario">Solicitar cotizacion</a>
+    }
+
+    @if (sitio.slides().length > 1) {
+      <div class="portada__puntos" role="tablist" aria-label="Diapositivas">
+        @for (s of sitio.slides(); track s.id; let i = $index) {
+          <button
+            type="button"
+            role="tab"
+            class="portada__punto"
+            [class.activo]="i === indiceSlide()"
+            [attr.aria-selected]="i === indiceSlide()"
+            [attr.aria-label]="'Ir a ' + s.titulo"
+            (click)="irASlide(i)"
+          ></button>
+        }
+      </div>
+    }
+  </div>
+</section>
+
+<!-- ============================ Cifras ============================ -->
+@if (a.home_cifras.length) {
+  <section class="cifras">
+    <div class="contenedor cifras__rejilla">
+      @for (cifra of a.home_cifras; track cifra.etiqueta) {
+        <div class="cifra">
+          <strong class="cifra__valor">{{ cifra.valor }}</strong>
+          <span class="cifra__etiqueta">{{ cifra.etiqueta }}</span>
+        </div>
+      }
+    </div>
+  </section>
+}
+
+<!-- ========================= Introduccion ========================= -->
+@if (a.home_intro_titulo) {
+  <section class="seccion intro">
+    <div class="contenedor intro__rejilla">
+      <div>
+        <span class="antetitulo">Quienes somos</span>
+        <h2>{{ a.home_intro_titulo }}</h2>
+      </div>
+      <div>
+        <p class="entradilla">{{ a.home_intro_texto }}</p>
+        <a routerLink="/nosotros" class="boton boton--contorno">
+          Conocer la empresa
+          <app-icono nombre="flecha" [tamano]="18" />
+        </a>
+      </div>
+    </div>
+  </section>
+}
+
+<!-- =========================== Servicios =========================== -->
+<section class="seccion seccion--alt" id="servicios">
+  <div class="contenedor">
+    <div class="encabezado-seccion encabezado-seccion--centrado">
+      <span class="antetitulo">Lo que hacemos</span>
+      <h2>Servicios de seguridad integral</h2>
+      <p class="entradilla">
+        Disenamos esquemas de proteccion a instalaciones, personas y carga critica, respaldados por
+        gestion del riesgo, inteligencia y personal certificado.
+      </p>
+    </div>
+
+    <div class="tarjetas">
+      @for (servicio of serviciosPortada(); track servicio.id) {
+        <a [routerLink]="['/servicios', servicio.slug]" class="tarjeta">
+          <span class="tarjeta__icono">
+            <app-icono [nombre]="servicio.icono" [tamano]="26" />
+          </span>
+          <h3 class="tarjeta__titulo">{{ servicio.titulo }}</h3>
+          <p class="tarjeta__resumen">{{ servicio.resumen }}</p>
+
+          @if (servicio.items.length) {
+            <ul class="tarjeta__items">
+              @for (item of servicio.items.slice(0, 3); track item) {
+                <li>
+                  <app-icono nombre="cheque" [tamano]="15" />
+                  {{ item }}
+                </li>
+              }
+            </ul>
+          }
+
+          <span class="tarjeta__enlace">
+            Ver detalle
+            <app-icono nombre="flecha" [tamano]="16" />
+          </span>
+        </a>
+      } @empty {
+        <p>Los servicios se estan cargando.</p>
+      }
+    </div>
+
+    <div class="centrado">
+      <a routerLink="/servicios" class="boton boton--oscuro">Ver todos los servicios</a>
+    </div>
+  </div>
+</section>
+
+<!-- =========================== Sectores =========================== -->
+@if (sectoresPortada().length) {
+  <section class="seccion">
+    <div class="contenedor">
+      <div class="encabezado-seccion encabezado-seccion--centrado">
+        <span class="antetitulo">A quien servimos</span>
+        <h2>Sectores que atendemos</h2>
+        <p class="entradilla">
+          Adaptamos el esquema de proteccion a la operacion real de cada industria.
+        </p>
+      </div>
+
+      <div class="sectores">
+        @for (sector of sectoresPortada(); track sector.id) {
+          <article class="sector">
+            @if (sector.imagen?.url) {
+              <img [src]="sector.imagen!.url" [alt]="sector.imagen!.alt || sector.nombre" loading="lazy" />
+            } @else {
+              <span class="sector__icono">
+                <app-icono [nombre]="sector.icono" [tamano]="26" />
+              </span>
+            }
+            <h3>{{ sector.nombre }}</h3>
+            <p>{{ sector.descripcion }}</p>
+          </article>
+        }
+      </div>
+
+      <div class="centrado">
+        <a routerLink="/sectores" class="boton boton--contorno">Ver todos los sectores</a>
+      </div>
+    </div>
+  </section>
+}
+
+<!-- ======================== Llamado final ======================== -->
+<section class="seccion seccion--oscura cta">
+  <div class="contenedor cta__interior">
+    <div>
+      <h2>{{ a.home_cta_titulo || 'Hablemos de la seguridad de su operacion' }}</h2>
+      <p class="entradilla">{{ a.home_cta_texto }}</p>
+    </div>
+
+    <div class="cta__acciones">
+      <a routerLink="/contacto" class="boton boton--primario">Solicitar cotizacion</a>
+      @if (a.contacto_telefono) {
+        <a [href]="a.telefono_url" class="boton boton--claro">
+          <app-icono nombre="telefono" [tamano]="18" />
+          {{ a.contacto_telefono }}
+        </a>
+      }
+    </div>
+  </div>
+</section>
