@@ -1,4 +1,10 @@
-/* --- Portada ---------------------------------------------------------- */
+/* --- Portada ----------------------------------------------------------
+
+   Mientras no haya foto de portada subida desde el panel, el fondo no se
+   queda en un azul liso: se compone con la trama de panal y dos focos de
+   luz. Cuando el cliente suba su imagen, `.portada__imagen` se pinta
+   encima y la trama pasa a ser la textura del velo.
+   ---------------------------------------------------------------------- */
 
 .portada {
   position: relative;
@@ -6,7 +12,11 @@
   align-items: center;
   min-height: clamp(520px, 78vh, 760px);
   overflow: hidden;
-  background: var(--color-primario);
+  background-color: var(--color-primario);
+  background-image:
+    var(--trama-panal),
+    radial-gradient(115% 85% at 82% 8%, rgba(var(--secundario-rgb), 0.45), transparent 58%),
+    radial-gradient(95% 75% at 5% 100%, rgba(var(--secundario-rgb), 0.2), transparent 55%);
   color: #fff;
 
   &__imagen {
@@ -15,6 +25,9 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    /* Zoom de 18 s apenas perceptible: evita que la portada parezca una
+       captura congelada sin robarle atencion al texto. */
+    animation: deriva-lenta 18s ease-out both;
   }
 
   &__velo {
@@ -25,12 +38,20 @@
       radial-gradient(circle at 78% 22%, rgba(var(--secundario-rgb), 0.4), transparent 58%);
   }
 
+  /* Sin corte diagonal al pie: la barra de cifras ya sube 46px sobre la
+     portada y hace ella sola de transicion. Con las dos cosas, el pico
+     blanco asomaba por el costado de la tarjeta y se leia como un error
+     de recorte en vez de como un remate. */
+
   &__interior {
     position: relative;
+    z-index: 2;
     max-width: 900px;
     padding-block: 88px;
   }
 
+  /* La portada es lo primero que se ve: aqui no sirve el revelado por
+     scroll, porque ya esta en pantalla. Entra sola, escalonada. */
   &__antetitulo {
     display: inline-block;
     margin-bottom: 16px;
@@ -42,12 +63,14 @@
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--color-acento);
+    animation: subir 0.7s var(--salida) both;
   }
 
   &__titulo {
     max-width: 17ch;
     color: #fff;
     text-wrap: balance;
+    animation: subir 0.7s var(--salida) 0.1s both;
   }
 
   &__texto {
@@ -55,18 +78,21 @@
     margin-bottom: 32px;
     font-size: 1.12rem;
     color: rgba(255, 255, 255, 0.85);
+    animation: subir 0.7s var(--salida) 0.2s both;
   }
 
   &__acciones {
     display: flex;
     flex-wrap: wrap;
     gap: 14px;
+    animation: subir 0.7s var(--salida) 0.3s both;
   }
 
   &__puntos {
     display: flex;
     gap: 10px;
     margin-top: 46px;
+    animation: aparecer 0.8s ease 0.5s both;
   }
 
   &__punto {
@@ -147,9 +173,11 @@
 }
 
 .tarjeta {
+  position: relative;
   display: flex;
   flex-direction: column;
   padding: 32px 28px;
+  overflow: hidden;
   background: #fff;
   border: 1px solid var(--borde);
   border-radius: var(--radio);
@@ -159,11 +187,38 @@
     box-shadow 0.22s ease,
     border-color 0.22s ease;
 
+  /* Filo superior que se dibuja de izquierda a derecha al pasar el cursor.
+     `transform` sobre un pseudoelemento en vez de animar `width`: el ancho
+     obliga al navegador a recalcular la disposicion en cada fotograma, la
+     escala no sale de la capa de composicion. */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-secundario), var(--color-acento));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.32s var(--salida);
+  }
+
   &:hover {
     transform: translateY(-5px);
     border-color: transparent;
     box-shadow: var(--sombra-lg);
     color: inherit;
+  }
+
+  &:hover::before,
+  &:focus-visible::before {
+    transform: scaleX(1);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--color-acento);
+    outline-offset: 3px;
   }
 
   &__icono {
@@ -175,6 +230,16 @@
     border-radius: 14px;
     background: rgba(var(--secundario-rgb), 0.12);
     color: var(--color-secundario);
+    transition:
+      background 0.25s ease,
+      color 0.25s ease,
+      transform 0.3s var(--rebote);
+  }
+
+  &:hover &__icono {
+    background: var(--color-secundario);
+    color: #fff;
+    transform: scale(1.08) rotate(-4deg);
   }
 
   &__titulo {
@@ -234,13 +299,25 @@
 }
 
 .sector {
+  position: relative;
   padding: 26px 22px;
+  overflow: hidden;
   background: var(--color-fondo-alt);
+  /* El fondo alterno sobre blanco apenas se distingue: sin borde, la
+     rejilla se lee como una mancha continua y no como tarjetas. */
+  border: 1px solid var(--borde);
   border-radius: var(--radio);
-  transition: background 0.2s ease;
+  transition:
+    background 0.24s ease,
+    border-color 0.24s ease,
+    transform 0.24s ease,
+    box-shadow 0.24s ease;
 
   &:hover {
-    background: rgba(var(--secundario-rgb), 0.1);
+    background: #fff;
+    border-color: rgba(var(--secundario-rgb), 0.4);
+    transform: translateY(-4px);
+    box-shadow: var(--sombra);
   }
 
   img {
@@ -251,15 +328,27 @@
     margin-bottom: 16px;
   }
 
+  /* Mientras no haya foto del sector, el icono no se queda sobre un
+     cuadro blanco vacio: recibe el fondo institucional con trama, que se
+     lee como una tarjeta terminada y no como un hueco pendiente. */
   &__icono {
+    position: relative;
     display: grid;
     place-items: center;
     width: 48px;
     height: 48px;
     margin-bottom: 16px;
     border-radius: 12px;
-    background: #fff;
-    color: var(--color-secundario);
+    background-color: var(--color-primario);
+    background-image:
+      var(--trama-malla),
+      linear-gradient(140deg, rgba(var(--secundario-rgb), 0.7), transparent 75%);
+    color: #fff;
+    transition: transform 0.32s var(--rebote);
+  }
+
+  &:hover &__icono {
+    transform: translateY(-2px) scale(1.06);
   }
 
   h3 {
@@ -302,5 +391,19 @@
 
   .cta__acciones {
     justify-content: flex-start;
+  }
+
+  .portada {
+    /* En un movil, 88px arriba y abajo empujan el boton fuera de la
+       primera pantalla y hay que hacer scroll para ver el llamado. */
+    &__interior {
+      padding-block: 64px;
+    }
+
+  }
+
+  .portada__acciones .boton {
+    /* Botones a lo ancho: dos pastillas a media linea se parten mal. */
+    flex: 1 1 100%;
   }
 }

@@ -1,0 +1,177 @@
+/* =====================================================================
+   Movimiento
+
+   Animaciones de entrada y microinteracciones del sitio publico.
+
+   Regla que gobierna todo el archivo: el contenido tiene que quedar
+   LEGIBLE aunque el movimiento no llegue a ocurrir. Por eso el estado
+   inicial de `.revelar` solo baja la opacidad y desplaza unos pixeles,
+   nunca `display:none` ni `visibility:hidden`. Si el IntersectionObserver
+   no corre -- porque falla el JS, porque el navegador es viejo o porque
+   alguien lee con un lector de pantalla -- el texto sigue ahi.
+
+   El bloque `prefers-reduced-motion` del final no es un adorno: para
+   quien tiene trastorno vestibular, una web que se mueve al hacer scroll
+   produce mareo real. Ahi se apaga todo y el contenido aparece de una vez.
+   ===================================================================== */
+
+/* --- Curvas -----------------------------------------------------------
+   Una salida suave (`--salida`) para lo que entra en pantalla, y un
+   rebote corto (`--rebote`) para lo que responde al cursor. */
+:root {
+  --salida: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --rebote: cubic-bezier(0.34, 1.36, 0.64, 1);
+}
+
+/* --- Fotogramas ------------------------------------------------------ */
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Zoom lentisimo del fondo del heroe: 18 s y solo un 6 %. Lo justo para
+   que la portada no parezca congelada sin que nadie note el movimiento. */
+@keyframes deriva-lenta {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+
+/* --- Revelado al hacer scroll ----------------------------------------
+
+   La directiva `revelar` (compartido/directivas/revelar.directive.ts)
+   marca el elemento cuando entra en pantalla. El CSS solo describe los
+   dos estados; quien decide cuando cambiar es el observador. */
+
+.revelar {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+  transition:
+    opacity 0.7s var(--salida),
+    transform 0.7s var(--salida);
+  transition-delay: var(--revelar-retraso, 0ms);
+  will-change: opacity, transform;
+}
+
+.revelar--visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Variantes: mismo mecanismo, distinta direccion de entrada. */
+.revelar--izquierda {
+  transform: translate3d(-26px, 0, 0);
+}
+
+.revelar--derecha {
+  transform: translate3d(26px, 0, 0);
+}
+
+.revelar--escala {
+  transform: scale(0.96);
+}
+
+/* Una vez visible, `will-change` deja de ser util y solo consume memoria
+   de compositor: con muchas tarjetas en pantalla llega a notarse. */
+.revelar--visible {
+  will-change: auto;
+}
+
+/* --- Utilidades ------------------------------------------------------ */
+
+.anim-subir {
+  animation: subir 0.75s var(--salida) both;
+}
+
+.anim-aparecer {
+  animation: aparecer 0.9s ease both;
+}
+
+/* --- Entrada escalonada de una rejilla -------------------------------
+
+   `<div class="tarjetas escalonado" revelar>`: el contenedor solo hace
+   de disparador y son los hijos los que entran, uno detras de otro.
+
+   Por eso el contenedor se anula a si mismo el estado oculto de
+   `.revelar`. Si no, se animaria el bloque entero Y ademas cada hijo:
+   dos desvanecidos superpuestos que dan sensacion de tiron. Asi basta un
+   unico IntersectionObserver para toda la rejilla en vez de uno por
+   tarjeta. */
+
+.revelar.escalonado {
+  opacity: 1;
+  transform: none;
+}
+
+/* El selector empieza por `.revelar`, que la pone la directiva desde el
+   TypeScript, nunca la plantilla. Asi, si el JS no llega a ejecutarse, la
+   rejilla se queda visible en lugar de invisible para siempre: `escalonado`
+   a secas no oculta nada. */
+.revelar.escalonado > * {
+  opacity: 0;
+  transform: translate3d(0, 20px, 0);
+  transition:
+    opacity 0.6s var(--salida),
+    transform 0.6s var(--salida);
+}
+
+.revelar.escalonado.revelar--visible > * {
+  opacity: 1;
+  transform: none;
+}
+
+/* Cada hijo arranca 70 ms despues del anterior, hasta el octavo. Mas alla
+   el retraso deja de leerse como cascada y se nota como espera, asi que
+   el resto de la rejilla entra junto con el ultimo. */
+@for $i from 1 through 8 {
+  .escalonado > *:nth-child(#{$i}) {
+    transition-delay: #{($i - 1) * 70}ms;
+  }
+}
+
+/* =====================================================================
+   Accesibilidad: apagar el movimiento
+
+   `animation: none` a secas dejaria los elementos con la opacidad 0 del
+   estado inicial, es decir, la pagina en blanco. Hay que devolver
+   explicitamente opacidad 1 y transform none.
+   ===================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .revelar,
+  .revelar--izquierda,
+  .revelar--derecha,
+  .revelar--escala,
+  .escalonado > * {
+    opacity: 1;
+    transform: none;
+  }
+}

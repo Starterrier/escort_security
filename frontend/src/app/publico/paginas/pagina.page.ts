@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, map, of, switchMap, tap } from 'rxjs';
 
 import { EncabezadoPaginaComponent } from '../../compartido/componentes/encabezado-pagina.component';
+import { RevelarDirective } from '../../compartido/directivas/revelar.directive';
 import { Pagina } from '../../core/modelos/api.modelos';
 import { ApiService } from '../../core/servicios/api.service';
 import { SeoService } from '../../core/servicios/seo.service';
@@ -16,7 +17,7 @@ import { SeoService } from '../../core/servicios/seo.service';
 @Component({
   selector: 'app-pagina',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, EncabezadoPaginaComponent],
+  imports: [RouterLink, EncabezadoPaginaComponent, RevelarDirective],
   template: `
     @if (noEncontrada()) {
       <app-encabezado-pagina titulo="Pagina no disponible" />

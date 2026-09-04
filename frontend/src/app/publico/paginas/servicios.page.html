@@ -21,7 +21,7 @@
       </div>
     }
 
-    <div class="lista">
+    <div class="lista escalonado" revelar>
       @for (servicio of serviciosFiltrados(); track servicio.id) {
         <article class="ficha">
           <div class="ficha__cabecera">
@@ -60,7 +60,7 @@
 </section>
 
 <section class="seccion seccion--oscura">
-  <div class="contenedor cierre">
+  <div class="contenedor cierre" revelar>
     <h2>No encuentra el servicio que necesita?</h2>
     <p class="entradilla">
       Estructuramos esquemas a la medida. Cuentenos su operacion y le proponemos una solucion.

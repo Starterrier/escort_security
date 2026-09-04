@@ -6,6 +6,11 @@
    son el estado inicial mientras la API responde.
    ===================================================================== */
 
+/* Tramas de fondo y animaciones. Van primero porque `@use` tiene que
+   preceder a cualquier regla del archivo. */
+@use './estilos/texturas';
+@use './estilos/movimiento';
+
 :root {
   --color-primario: #0b1e3c;
   --color-secundario: #3d8fd8;

@@ -5,6 +5,7 @@ import { map, switchMap, catchError, of, tap } from 'rxjs';
 
 import { EncabezadoPaginaComponent } from '../../compartido/componentes/encabezado-pagina.component';
 import { IconoComponent } from '../../compartido/componentes/icono.component';
+import { RevelarDirective } from '../../compartido/directivas/revelar.directive';
 import { Servicio } from '../../core/modelos/api.modelos';
 import { ApiService } from '../../core/servicios/api.service';
 import { SeoService } from '../../core/servicios/seo.service';
@@ -18,7 +19,7 @@ interface RespuestaDetalle {
 @Component({
   selector: 'app-servicio-detalle',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, IconoComponent, EncabezadoPaginaComponent],
+  imports: [RouterLink, IconoComponent, EncabezadoPaginaComponent, RevelarDirective],
   templateUrl: './servicio-detalle.page.html',
   styleUrl: './servicio-detalle.page.scss',
 })

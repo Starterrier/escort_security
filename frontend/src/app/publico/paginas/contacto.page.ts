@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 
 import { EncabezadoPaginaComponent } from '../../compartido/componentes/encabezado-pagina.component';
 import { IconoComponent } from '../../compartido/componentes/icono.component';
+import { RevelarDirective } from '../../compartido/directivas/revelar.directive';
 import { ApiService } from '../../core/servicios/api.service';
 import { SeoService } from '../../core/servicios/seo.service';
 import { SitioService } from '../../core/servicios/sitio.service';
@@ -12,7 +13,7 @@ import { erroresDeCampo, mensajeDeError } from '../../core/interceptores/errores
 @Component({
   selector: 'app-contacto',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, IconoComponent, EncabezadoPaginaComponent],
+  imports: [ReactiveFormsModule, IconoComponent, EncabezadoPaginaComponent, RevelarDirective],
   templateUrl: './contacto.page.html',
   styleUrl: './contacto.page.scss',
 })

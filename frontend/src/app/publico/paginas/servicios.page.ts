@@ -3,13 +3,14 @@ import { RouterLink } from '@angular/router';
 
 import { EncabezadoPaginaComponent } from '../../compartido/componentes/encabezado-pagina.component';
 import { IconoComponent } from '../../compartido/componentes/icono.component';
+import { RevelarDirective } from '../../compartido/directivas/revelar.directive';
 import { SeoService } from '../../core/servicios/seo.service';
 import { SitioService } from '../../core/servicios/sitio.service';
 
 @Component({
   selector: 'app-servicios',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, IconoComponent, EncabezadoPaginaComponent],
+  imports: [RouterLink, IconoComponent, EncabezadoPaginaComponent, RevelarDirective],
   templateUrl: './servicios.page.html',
   styleUrl: './servicios.page.scss',
 })

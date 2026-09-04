@@ -3,13 +3,14 @@ import { RouterLink } from '@angular/router';
 
 import { EncabezadoPaginaComponent } from '../../compartido/componentes/encabezado-pagina.component';
 import { IconoComponent } from '../../compartido/componentes/icono.component';
+import { RevelarDirective } from '../../compartido/directivas/revelar.directive';
 import { SeoService } from '../../core/servicios/seo.service';
 import { SitioService } from '../../core/servicios/sitio.service';
 
 @Component({
   selector: 'app-sectores',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, IconoComponent, EncabezadoPaginaComponent],
+  imports: [RouterLink, IconoComponent, EncabezadoPaginaComponent, RevelarDirective],
   template: `
     <app-encabezado-pagina
       titulo="Sectores que atendemos"
@@ -18,7 +19,7 @@ import { SitioService } from '../../core/servicios/sitio.service';
 
     <section class="seccion">
       <div class="contenedor">
-        <div class="rejilla">
+        <div class="rejilla escalonado" revelar>
           @for (sector of sitio.sectores(); track sector.id) {
             <article class="tarjeta-sector">
               @if (sector.imagen?.url) {
@@ -46,7 +47,7 @@ import { SitioService } from '../../core/servicios/sitio.service';
     </section>
 
     <section class="seccion seccion--alt">
-      <div class="contenedor cierre">
+      <div class="contenedor cierre" revelar>
         <h2>Su sector no aparece en la lista?</h2>
         <p class="entradilla">
           Trabajamos con operaciones de todos los tamanos. Cuentenos su caso y evaluamos el riesgo.

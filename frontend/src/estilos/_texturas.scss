@@ -1,0 +1,71 @@
+/* =====================================================================
+   Texturas de fondo
+
+   Tramas SVG propias, escritas como data-URI en lugar de archivos en
+   public/. Dos razones:
+
+   1. No cuestan una peticion extra, y ninguna pesa mas de 1 KB.
+   2. Viajan dentro del CSS, que Angular compila con hash en el nombre.
+      Un .svg suelto en public/ no lleva hash, y el .htaccess del sitio
+      cachea los svg un ano como immutable: cambiar la trama no se veria
+      hasta que el visitante limpie el navegador.
+
+   Los colores van fijos en cada SVG porque un data-URI no puede leer
+   var(--color-*). Por eso cada trama viene en dos versiones: `--trama-x`
+   en blanco translucido para los bloques oscuros, y `--trama-x-oscura`
+   en azul translucido para los claros. La almohadilla de un color hex
+   tiene que ir escapada como %23 o el navegador corta la URL ahi mismo.
+   ===================================================================== */
+
+:root {
+  /* Puntos regulares. Para el heroe y los bloques de color solido. */
+  --trama-puntos: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='2' cy='2' r='1.1' fill='%23ffffff' fill-opacity='0.16'/%3E%3C/svg%3E");
+  --trama-puntos-oscura: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='2' cy='2' r='1.1' fill='%230b1e3c' fill-opacity='0.09'/%3E%3C/svg%3E");
+
+  /* Reticula fina: evoca el perimetro vigilado, plano de instalacion. */
+  --trama-malla: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cpath d='M44 0H0v44' fill='none' stroke='%23ffffff' stroke-opacity='0.09' stroke-width='1'/%3E%3C/svg%3E");
+  --trama-malla-oscura: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cpath d='M44 0H0v44' fill='none' stroke='%230b1e3c' stroke-opacity='0.07' stroke-width='1'/%3E%3C/svg%3E");
+
+  /* Diagonales: franjas de senalizacion, para cintas y pies de seccion. */
+  --trama-diagonal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M-6 6L6 -6M0 24L24 0M18 30L30 18' stroke='%23ffffff' stroke-opacity='0.07' stroke-width='2'/%3E%3C/svg%3E");
+
+  /* Panal: la trama mas densa, reservada al heroe. */
+  --trama-panal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='96'%3E%3Cpath d='M28 0L56 16v32L28 64 0 48V16z' fill='none' stroke='%23ffffff' stroke-opacity='0.07' stroke-width='1.2'/%3E%3C/svg%3E");
+}
+
+/* --- Composiciones listas para usar ---------------------------------
+
+   `background` con varias capas se lee de arriba hacia abajo: la trama
+   va primero porque debe quedar POR ENCIMA del degradado. Invertir el
+   orden deja la trama tapada y el fondo se ve liso.
+   ------------------------------------------------------------------- */
+
+/* Bloque institucional oscuro con profundidad: el degradado radial
+   levanta una esquina para que el azul no se lea como una mancha plana. */
+@mixin fondo-institucional($trama: var(--trama-panal)) {
+  background-color: var(--color-primario);
+  background-image:
+    $trama,
+    radial-gradient(120% 90% at 85% 0%, rgba(var(--secundario-rgb), 0.42), transparent 60%),
+    radial-gradient(90% 80% at 0% 100%, rgba(var(--secundario-rgb), 0.22), transparent 55%);
+}
+
+/* Version clara para las secciones alternas. */
+@mixin fondo-suave($trama: var(--trama-puntos-oscura)) {
+  background-color: var(--color-fondo-alt);
+  background-image:
+    $trama,
+    radial-gradient(100% 70% at 100% 0%, rgba(var(--secundario-rgb), 0.08), transparent 60%);
+}
+
+/* Marcador de una imagen que el cliente todavia no ha subido. No es un
+   "roto": es un degradado con la trama encima y el icono del contenido
+   centrado, para que la maqueta se vea terminada mientras llegan las
+   fotos reales. */
+@mixin marcador-imagen {
+  background-color: var(--color-primario);
+  background-image:
+    var(--trama-malla),
+    linear-gradient(135deg, rgba(var(--secundario-rgb), 0.55), transparent 70%);
+  color: rgba(255, 255, 255, 0.9);
+}
