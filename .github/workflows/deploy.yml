@@ -159,51 +159,46 @@ jobs:
           }
 
           echo "Conectando para inspeccionar el servidor..."
-
-          # `pwd` no devuelve una ruta sino una URL con el path codificado:
-          #   ftp://usuario@host/%2Fpublic_html
-          # Hay que quitarle el esquema y decodificar %2F, o la comprobacion de
-          # mas abajo compara contra "%2Fpublic_html" y nunca acierta. Ademas,
-          # esa URL lleva dentro el usuario y el host, que son secrets: tal cual
-          # sale del log como *** y no hay forma de diagnosticar nada.
-          PWD_CRUDO="$(ftp_run 'pwd' | tail -n1 | tr -d '\r')"
-          PWD_REMOTO="$(printf '%s' "$PWD_CRUDO" \
-            | sed -e 's|^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]*||' \
-                  -e 's|%2[Ff]|/|g' \
-                  -e 's|//*|/|g')"
-          echo "La sesion FTP aterriza en: ${PWD_REMOTO:-(desconocido)}"
           echo ""
-          echo "---- Contenido de esa carpeta ----"
+          echo "---- Contenido de la carpeta inicial ----"
           ftp_run 'cls -1' || true
-          echo "----------------------------------"
+          echo "-----------------------------------------"
           echo ""
 
+          # La decision se toma SOLO con `cd`, nunca con `pwd`: lftp responde a
+          # pwd con una URL cuyo path va percent-encoded y que ademas lleva
+          # dentro el usuario y el host. Al ser secrets, GitHub la tapa con ***
+          # en el log, asi que su formato no se puede ni comprobar ni depurar.
+          # `cd` en cambio solo dice si la carpeta existe, que es todo lo que
+          # hace falta saber.
           REMOTE=""
 
-          # 1) La cuenta FTP se creo para un dominio y entra directamente en su
-          #    public_html: el destino es la propia carpeta inicial. Se mira
-          #    primero porque en ese caso no hay ni domains/ ni public_html que
-          #    probar, y el `cd` de mas abajo solo gastaria una conexion.
-          if [ "${PWD_REMOTO%/public_html}" != "$PWD_REMOTO" ]; then
-            REMOTE="."
-
-          # 2) Cuenta del home: el dominio cuelga de domains/.
-          elif ftp_run "cd domains/${SITE_DOMAIN}/public_html" >/dev/null 2>&1; then
+          if ftp_run "cd domains/${SITE_DOMAIN}/public_html" >/dev/null 2>&1; then
+            # Cuenta FTP del home, con el dominio colgando de domains/.
             REMOTE="domains/${SITE_DOMAIN}/public_html"
+            echo "Encontrado domains/${SITE_DOMAIN}/public_html"
 
-          # 3) Home con un unico public_html (plan de un solo sitio).
-          elif ftp_run 'cd public_html' >/dev/null 2>&1; then
-            REMOTE="public_html"
-          fi
-
-          if [ -z "$REMOTE" ]; then
-            echo "::error::No se encontro donde publicar ${SITE_DOMAIN}."
-            echo "La sesion empieza en '${PWD_REMOTO}', que no es un public_html,"
-            echo "y ahi dentro no hay ni domains/ ni public_html."
-            echo "Dominios visibles en el servidor:"
-            ftp_run 'cls -1 domains/' || echo "  (no hay carpeta domains/)"
-            echo "::error::Revise SITE_DOMAIN en el bloque env: de este workflow."
+          elif ftp_run 'cd domains' >/dev/null 2>&1; then
+            # Hay domains/ pero no el dominio pedido: SITE_DOMAIN esta mal
+            # escrito. Se corta aqui en vez de publicar en la carpeta que no es.
+            echo "::error::Existe domains/ pero no domains/${SITE_DOMAIN}/public_html."
+            echo "Dominios que si hay en la cuenta:"
+            ftp_run 'cls -1 domains/' || true
+            echo "::error::Corrija SITE_DOMAIN en el bloque env: de este workflow."
             exit 1
+
+          elif ftp_run 'cd public_html' >/dev/null 2>&1; then
+            # Home de un plan de un solo sitio.
+            REMOTE="public_html"
+            echo "Encontrado public_html/ en la carpeta inicial"
+
+          else
+            # Ni domains/ ni public_html/ por debajo: la cuenta FTP se creo para
+            # un dominio y ya entra dentro de su public_html, que es el caso de
+            # esta cuenta. El destino es la propia carpeta inicial.
+            REMOTE="."
+            echo "No hay domains/ ni public_html/ debajo: la sesion ya empieza"
+            echo "dentro de la carpeta publica del dominio, se publica ahi mismo."
           fi
 
           echo "remote=$REMOTE" >> "$GITHUB_OUTPUT"
