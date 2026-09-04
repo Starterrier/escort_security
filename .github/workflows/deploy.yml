@@ -1,0 +1,379 @@
+name: Deploy ESCORT SECURITY -> Hostinger (FTP)
+
+on:
+  push:
+    branches:
+      - main
+  # Permite lanzar un deploy a mano desde la pestana Actions, con la opcion de
+  # forzar la subida completa (util tras tocar algo directamente en el servidor).
+  workflow_dispatch:
+    inputs:
+      forzar_todo:
+        description: 'Subir frontend y backend completos, ignorando el git diff'
+        type: boolean
+        default: false
+
+# Un solo deploy a la vez, pero los pushes nuevos HACEN COLA en vez de matar al
+# que esta corriendo.
+#
+# `cancel-in-progress: false` es a proposito: cancelar lftp a mitad de una
+# transferencia deja archivos a medias en el servidor y la sesion FTP colgada
+# del lado de Hostinger. El riesgo de un run atascado ya lo cubre el
+# `timeout 900` de cada step de lftp: en el peor caso muere solo a los 15 min
+# y libera la cola.
+concurrency:
+  group: deploy-ftp
+  cancel-in-progress: false
+
+# Valores que NO son secretos: ya viven en el repositorio (config.example.php,
+# environment.prod.ts, los .htaccess). Meterlos en la UI de GitHub no esconde
+# nada y obliga a buscar en dos sitios cuando algo no cuadra, asi que se
+# editan aqui. Los unicos secrets son los del FTP y los de MySQL.
+env:
+  # Dominio del sitio: se usa para CORS y como emisor del JWT.
+  SITE_DOMAIN: essltda.com
+
+  # Ruta del sitio dentro del FTP. En Hostinger la sesion aterriza en el home
+  # y el dominio vive en domains/<dominio>/public_html.
+  REMOTE_DIR: domains/essltda.com/public_html
+
+  # Destinatario y remitente de las solicitudes del formulario de contacto.
+  MAIL_TO: comercial@essltda.com
+  MAIL_FROM: no-responder@essltda.com
+
+jobs:
+  deploy:
+    name: Deploy inteligente - solo lo que cambio
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # -- 1. Checkout con historial completo (necesario para el diff de SHAs) --
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # -- 1b. Restaurar mtime de cada archivo a la fecha de su ultimo commit --
+      # Por defecto el checkout deja TODOS los archivos con mtime = ahora, y
+      # lftp los considera "mas nuevos" que los del servidor y los re-sube
+      # todos. Esto los devuelve al timestamp real de git, asi el mirror del
+      # backend solo toca los .php que de verdad cambiaron.
+      - name: Restore file mtimes from git
+        uses: chetan/git-restore-mtime-action@v2
+
+      # -- 2. Validar que estan los seis secrets antes de tocar nada ---------
+      # Mejor fallar aqui, en dos segundos, que a mitad del mirror con medio
+      # sitio subido y la otra mitad no.
+      - name: Validar secrets del deploy
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+        run: |
+          faltan=""
+          for v in FTP_SERVER FTP_USERNAME FTP_PASSWORD DB_NAME DB_USER DB_PASS; do
+            [ -n "${!v}" ] || faltan="$faltan $v"
+          done
+
+          if [ -n "$faltan" ]; then
+            echo "::error::Faltan estos secrets en Settings > Secrets and variables > Actions:$faltan"
+            exit 1
+          fi
+
+          echo "Secrets completos. Destino remoto: ${REMOTE_DIR}"
+
+      # -- 3. Detectar que cambio -------------------------------------------
+      - name: Detectar archivos modificados
+        id: changes
+        run: |
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+
+          # Se sube todo cuando: lo pidio el usuario a mano, o no hay un commit
+          # anterior utilizable (primer push a la rama -> before = 000...0, o un
+          # push forzado que dejo el commit viejo colgando).
+          #
+          # OJO con el formato: los greps de abajo van anclados con ^, asi que
+          # esta lista tiene que ir UNA RUTA POR LINEA. Si va en una sola linea
+          # separada por espacios solo matchea la primera y el resto se queda
+          # sin desplegar en silencio.
+          if [ "${{ github.event.inputs.forzar_todo }}" = "true" ]; then
+            echo "-> Deploy completo solicitado a mano."
+            CHANGED=$(printf 'frontend/\nbackend/\n')
+          elif [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || ! git rev-parse --verify "$BEFORE^{commit}" >/dev/null 2>&1; then
+            echo "!! No se puede resolver el commit anterior ($BEFORE). Se despliega TODO."
+            CHANGED=$(printf 'frontend/\nbackend/\n')
+          else
+            CHANGED=$(git diff --name-only "$BEFORE" "$AFTER")
+          fi
+
+          echo "---- Archivos modificados en este push ----"
+          echo "$CHANGED"
+          echo "------------------------------------------"
+
+          frontend_changed=false
+          backend_changed=false
+
+          # `|| true`: sin el, un grep sin coincidencias devuelve 1 y, si cae al
+          # final del script, tumba el step aunque no haya pasado nada malo.
+          echo "$CHANGED" | grep -q '^frontend/' && frontend_changed=true || true
+          echo "$CHANGED" | grep -q '^backend/'  && backend_changed=true  || true
+
+          echo "frontend=$frontend_changed" >> "$GITHUB_OUTPUT"
+          echo "backend=$backend_changed"   >> "$GITHUB_OUTPUT"
+
+          echo ""
+          echo "  frontend -> $frontend_changed"
+          echo "  backend  -> $backend_changed"
+
+      # ======================================================================
+      # FRONTEND - solo si frontend/ cambio
+      # ======================================================================
+
+      - name: Set up Node.js 22
+        if: steps.changes.outputs.frontend == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Angular dependencies
+        if: steps.changes.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Angular for production
+        if: steps.changes.outputs.frontend == 'true'
+        working-directory: frontend
+        run: npx ng build --configuration production
+
+      - name: Prepare Angular bundle
+        if: steps.changes.outputs.frontend == 'true'
+        run: |
+          mkdir -p deploy/frontend
+          cp -r frontend/dist/frontend/browser/. deploy/frontend/
+
+          # El .htaccess se copia explicitamente: aunque public/ esta declarado
+          # como assets en angular.json, no todos los builders arrastran los
+          # dotfiles, y sin ese archivo el enrutador de Angular devuelve 404 al
+          # recargar cualquier ruta que no sea /.
+          cp frontend/public/.htaccess deploy/frontend/.htaccess
+
+          test -f deploy/frontend/index.html || { echo "::error::La build no genero index.html"; exit 1; }
+          echo "Bundle listo:"
+          ls -la deploy/frontend/
+
+      # ======================================================================
+      # BACKEND - solo si backend/ cambio
+      # ======================================================================
+
+      - name: Prepare backend bundle
+        if: steps.changes.outputs.backend == 'true'
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+        run: |
+          mkdir -p deploy/backend
+
+          # router-dev.php solo sirve al servidor embebido de PHP en local.
+          # config/config.php se genera abajo desde los secrets: nunca esta en
+          # el repo (ver .gitignore).
+          rsync -a \
+            --exclude='vendor/' \
+            --exclude='config/config.php' \
+            --exclude='public/router-dev.php' \
+            backend/. deploy/backend/
+
+          # Clave de firma del JWT. No es un secret aparte: se deriva de la
+          # contrasena de MySQL con SHA-256, asi que es estable entre deploys
+          # (las sesiones abiertas siguen valiendo) y no aparece en el repo.
+          # Reutilizar DB_PASS no amplia el riesgo: quien la tenga ya entra a la
+          # base de datos entera. Si algun dia cambias DB_PASS, la clave cambia
+          # con ella y todos los admins vuelven a iniciar sesion, nada mas.
+          JWT_SECRET="$(printf '%s' "ess-jwt-v1:${DB_PASS}" | sha256sum | cut -d' ' -f1)"
+          # Que GitHub lo tape si alguna vez acaba en un log.
+          echo "::add-mask::$JWT_SECRET"
+
+          # Escapa un valor para incrustarlo entre comillas simples en PHP:
+          # primero las barras invertidas, despues las comillas.
+          php_str() {
+            printf '%s' "${1-}" | sed -e 's/\\/\\\\/g' -e "s/'/\\\\'/g"
+          }
+
+          cat > deploy/backend/config/config.php <<PHP
+          <?php
+          /**
+           * GENERADO AUTOMATICAMENTE POR GitHub Actions EN CADA DEPLOY.
+           *
+           * No lo edite en el servidor: el proximo deploy lo sobrescribe.
+           * Los valores salen de los secrets y variables del repositorio.
+           */
+
+          return [
+              'entorno' => 'produccion',
+
+              'db' => [
+                  // En Hostinger MySQL siempre escucha en el propio servidor.
+                  'host'    => 'localhost',
+                  'puerto'  => 3306,
+                  'nombre'  => '$(php_str "$DB_NAME")',
+                  'usuario' => '$(php_str "$DB_USER")',
+                  'clave'   => '$(php_str "$DB_PASS")',
+                  'charset' => 'utf8mb4',
+              ],
+
+              'jwt' => [
+                  'secreto'          => '$(php_str "$JWT_SECRET")',
+                  'emisor'           => '$(php_str "$SITE_DOMAIN")',
+                  'minutos_vigencia' => 480,
+              ],
+
+              'cors' => [
+                  'origenes' => [
+                      'https://$(php_str "$SITE_DOMAIN")',
+                      'https://www.$(php_str "$SITE_DOMAIN")',
+                  ],
+              ],
+
+              'uploads' => [
+                  'directorio'  => __DIR__ . '/../public/uploads',
+                  'url_base'    => '/api/uploads',
+                  'peso_maximo' => 5 * 1024 * 1024,
+                  'mimes'       => ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'application/pdf'],
+              ],
+
+              'correo' => [
+                  'destinatario'     => '$(php_str "$MAIL_TO")',
+                  'remitente'        => '$(php_str "$MAIL_FROM")',
+                  'nombre_remitente' => 'Sitio web ESS',
+                  'enviar'           => true,
+              ],
+
+              'seguridad' => [
+                  'max_intentos_login'   => 5,
+                  'minutos_bloqueo'      => 15,
+                  'max_solicitudes_ip'   => 5,
+                  'minutos_ventana_form' => 60,
+              ],
+          ];
+          PHP
+
+          # Si algo quedo mal formado es mejor enterarse aqui que con un 500 en
+          # produccion. `php -l` no imprime los valores, solo valida sintaxis.
+          find deploy/backend -name '*.php' -print0 | xargs -0 -n1 -- php -l > /dev/null
+          echo "Backend validado: $(find deploy/backend -name '*.php' | wc -l) archivos PHP."
+
+      # ======================================================================
+      # FTP - instalar lftp solo si hay algo que subir
+      # ======================================================================
+
+      - name: Instalar lftp
+        if: |
+          steps.changes.outputs.frontend == 'true' ||
+          steps.changes.outputs.backend  == 'true'
+        # `apt-get update` primero: sin el, el runner puede tener indices de
+        # paquetes rancios y el install falla con "Unable to locate package
+        # lftp" - un deploy rojo que no tiene nada que ver con tu codigo.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lftp
+
+      # Frontend: deploy COMPLETO en cada cambio (no incremental).
+      # Razon: mezclar bundles viejos con un index.html nuevo (o al reves) tumba
+      # la app mientras lftp esta a la mitad de la transferencia. Por eso va en
+      # DOS PASOS:
+      #   1) Sube bundles y assets EXCEPTO index.html, y limpia los hashes que
+      #      ya no existen en la build nueva.
+      #   2) Sube index.html al FINAL, cuando todos sus bundles ya estan arriba.
+      #
+      # `--exclude '^backend/'` es CRITICO: sin el, el --delete de este mirror
+      # borraria la API entera del servidor en cada deploy de frontend.
+      # `.well-known/` queda fuera por la renovacion del certificado SSL, y
+      # `cgi-bin/` porque lo crea el propio hosting.
+      #
+      # OJO en el primer deploy: `--delete` deja la raiz del sitio igual a la
+      # build, asi que se lleva lo que hubiera antes en public_html (la pagina
+      # por defecto de Hostinger, instalaciones viejas, etc.).
+      - name: Upload Angular -> raiz del sitio
+        if: steps.changes.outputs.frontend == 'true'
+        run: |
+          timeout 900 lftp -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" "${{ secrets.FTP_SERVER }}" <<'LFTP_SCRIPT'
+          set ftp:ssl-allow yes
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate no
+          set ftp:passive-mode true
+          set ftp:use-mlsd true
+          set net:timeout 30
+          set net:max-retries 5
+          set net:connection-limit 1
+          set net:reconnect-interval-base 5
+          set net:reconnect-interval-multiplier 1
+          set mirror:parallel-transfer-count 1
+          set cmd:fail-exit true
+
+          mirror --reverse --delete --verbose --no-perms --parallel=1 \
+                 --exclude '^backend/' \
+                 --exclude '^cgi-bin/' \
+                 --exclude '^\.well-known/' \
+                 --exclude-glob index.html \
+                 deploy/frontend/ ${{ env.REMOTE_DIR }}/
+
+          # index.html de ultimo: el cliente nunca apunta a un bundle inexistente.
+          put deploy/frontend/index.html -o ${{ env.REMOTE_DIR }}/index.html
+          # Y el .htaccess explicito, por si el mirror se salta el dotfile.
+          put deploy/frontend/.htaccess -o ${{ env.REMOTE_DIR }}/.htaccess
+          quit
+          LFTP_SCRIPT
+
+      # Backend: rsync -a preserva los mtimes restaurados por git-restore-mtime,
+      # asi que el mirror solo sube los .php que realmente cambiaron.
+      #
+      # public/uploads/ y storage/logs/ quedan FUERA del mirror: su contenido
+      # vive solo en el servidor y el --delete lo borraria (las imagenes que
+      # suben desde el panel, incluidas).
+      - name: Upload backend -> backend/
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          timeout 900 lftp -u "${{ secrets.FTP_USERNAME }}","${{ secrets.FTP_PASSWORD }}" "${{ secrets.FTP_SERVER }}" <<'LFTP_SCRIPT'
+          set ftp:ssl-allow yes
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate no
+          set ftp:passive-mode true
+          set ftp:use-mlsd true
+          set net:timeout 30
+          set net:max-retries 5
+          set net:connection-limit 1
+          set net:reconnect-interval-base 5
+          set net:reconnect-interval-multiplier 1
+          set mirror:parallel-transfer-count 1
+          set cmd:fail-exit true
+
+          mirror --reverse --delete --verbose --no-perms --parallel=1 \
+                 --exclude '^public/uploads/' \
+                 --exclude '^storage/logs/' \
+                 deploy/backend/ ${{ env.REMOTE_DIR }}/backend/
+
+          # Las carpetas escribibles se crean si faltan y se les repone su
+          # .htaccess, pero su contenido nunca se toca.
+          mkdir -p ${{ env.REMOTE_DIR }}/backend/public/uploads
+          mkdir -p ${{ env.REMOTE_DIR }}/backend/storage/logs
+          put deploy/backend/public/uploads/.htaccess -o ${{ env.REMOTE_DIR }}/backend/public/uploads/.htaccess
+          quit
+          LFTP_SCRIPT
+
+      # -- Resumen final -----------------------------------------------------
+      - name: Resumen del deploy
+        if: always()
+        run: |
+          echo "=========================================="
+          echo "  Deploy terminado"
+          echo "  destino  -> ${{ env.REMOTE_DIR }}"
+          echo "  frontend -> ${{ steps.changes.outputs.frontend }}"
+          echo "  backend  -> ${{ steps.changes.outputs.backend }}"
+          echo "=========================================="

@@ -1,0 +1,7 @@
+# Estos archivos los consume Linux, no Windows: si viajan con CRLF, el runner
+# de GitHub Actions ejecuta cada linea del `run:` con un \r pegado al final y
+# bash responde `$'\r': command not found`. Apache hace lo propio con .htaccess.
+*.yml     text eol=lf
+*.yaml    text eol=lf
+*.sh      text eol=lf
+.htaccess text eol=lf

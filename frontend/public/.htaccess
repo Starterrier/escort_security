@@ -10,8 +10,27 @@
     RewriteEngine On
     RewriteBase /
 
-    # La API vive en /api: no la toca el enrutador del front.
-    RewriteRule ^api/ - [L]
+    # --- La API ---------------------------------------------------------
+    # El backend se despliega en backend/, con su controlador frontal en
+    # backend/public/index.php. Nada de /api existe fisicamente: estas reglas
+    # traducen /api/* a esa carpeta antes de que actue el enrutador de Angular.
+
+    # Authorization se pierde en CGI/FastCGI; se reinyecta como variable.
+    RewriteCond %{HTTP:Authorization} ^(.+)$
+    RewriteRule ^api/ - [E=HTTP_AUTHORIZATION:%1]
+
+    # Las imagenes subidas desde el panel se sirven desde su carpeta real.
+    RewriteCond %{DOCUMENT_ROOT}/backend/public/uploads/$1 -f
+    RewriteRule ^api/uploads/(.*)$ backend/public/uploads/$1 [L]
+
+    # Una subida que ya no existe devuelve 404, no el index de Angular: si no,
+    # un <img> roto recibiria la app entera con estado 200.
+    RewriteRule ^api/uploads/ - [R=404,L]
+
+    # El resto entra por el controlador frontal. La ruta viaja en ?_ruta=
+    # porque index.php la deduce de SCRIPT_NAME, y ahi veria /backend/public
+    # en lugar de /api. QSA conserva los parametros originales de la URL.
+    RewriteRule ^api/?(.*)$ backend/public/index.php?_ruta=/$1 [QSA,L]
 
     # Los archivos y carpetas que existen se sirven tal cual.
     RewriteCond %{REQUEST_FILENAME} -f [OR]

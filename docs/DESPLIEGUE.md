@@ -1,14 +1,97 @@
 # Despliegue en producción
 
-Dos escenarios: **hosting compartido con cPanel** (lo habitual para un dominio
-como essltda.com) y **VPS con dominio propio para la API**.
+Tres caminos: **automático por GitHub Actions** (el que se usa hoy),
+**hosting compartido con cPanel a mano** y **VPS con dominio propio para la
+API**.
 
 ---
 
-## Opción A — Hosting compartido (cPanel)
+## Opción 0 — Automático con GitHub Actions (recomendado)
+
+`.github/workflows/deploy.yml` despliega por FTP en cada push a `main`. Compara
+el commit anterior con el nuevo y solo toca lo que cambió: si el push fue
+únicamente a `backend/`, ni siquiera compila Angular.
+
+Estructura que deja en el servidor:
+
+```
+public_html/
+├── index.html              <- build de Angular
+├── main-XXXX.js
+├── .htaccess               <- de frontend/public/.htaccess
+└── backend/
+    ├── public/index.php    <- responde en /api/*
+    ├── public/uploads/     <- se sirve en /api/uploads/*
+    ├── src/                <- Require all denied
+    └── config/config.php   <- generado desde los secrets, Require all denied
+```
+
+A diferencia de la Opción A, aquí `/api` **no es una carpeta real**: el
+`.htaccess` de la raíz reescribe `/api/*` hacia `backend/public/index.php`
+pasando la ruta en `?_ruta=`. Por eso no hace falta `SetEnv ESS_RAIZ` ni conocer
+la ruta absoluta del home: `index.php` resuelve `ESS_RAIZ` como la carpeta que
+contiene a `public/`, que aquí ya es la correcta.
+
+### Qué hay que configurar una sola vez
+
+Seis secrets en **Settings → Secrets and variables → Actions**, y nada más:
+
+| Secret | Dónde sale en hPanel |
+| --- | --- |
+| `FTP_SERVER` | Archivos → Cuentas FTP → *Hostname* |
+| `FTP_USERNAME` | Archivos → Cuentas FTP → *Usuario* |
+| `FTP_PASSWORD` | La que definió al crear la cuenta FTP |
+| `DB_NAME` | Bases de datos → MySQL (Hostinger la prefija: `u123456_essltda`) |
+| `DB_USER` | Bases de datos → MySQL |
+| `DB_PASS` | Bases de datos → MySQL |
+
+Todo lo demás está escrito en el bloque `env:` de `deploy.yml`, porque no es
+secreto y ya vive en el repositorio: el dominio, la ruta remota
+(`domains/<dominio>/public_html`), y los correos del formulario de contacto.
+Si cambia de dominio, se edita ahí y en ningún otro sitio.
+
+`localhost` y el puerto `3306` van fijos: en hosting compartido de Hostinger
+MySQL siempre escucha en el mismo servidor.
+
+**La clave del JWT no es un secret aparte.** Se deriva de `DB_PASS` con SHA-256
+(`sha256("ess-jwt-v1:" + DB_PASS)`), así que es estable entre deploys y nunca
+aparece en el repositorio. Reutilizar esa contraseña no amplía el riesgo: quien
+la tenga ya entra a la base de datos completa. El único efecto de cambiar
+`DB_PASS` algún día es que los administradores tendrán que volver a iniciar
+sesión.
+
+`config/config.php` se **genera en cada deploy** con esos valores y se
+sobrescribe en el servidor. No lo edite allí: cambie el secret y vuelva a
+desplegar.
+
+### Lo que el deploy nunca borra
+
+El mirror del backend excluye `public/uploads/` y `storage/logs/`, que solo
+existen en el servidor. El mirror del frontend excluye `backend/`: sin esa
+exclusión, su `--delete` se llevaría la API entera en cada deploy de Angular.
+
+### Deploy manual
+
+Actions → *Deploy ESCORT SECURITY* → **Run workflow**. Marcando
+`forzar_todo` se ignora el diff de git y se suben frontend y backend completos
+(útil si alguien tocó archivos directamente por FTP).
+
+---
+
+## Opción A — Hosting compartido (cPanel, a mano)
 
 El sitio Angular vive en `public_html/` y la API en `public_html/api/`.
 Así no hay CORS entre ambos y el certificado SSL es uno solo.
+
+> **Antes de seguir esta opción**, quite del `.htaccess` raíz el bloque
+> `--- La API ---` que añadió la Opción 0. Esas reglas mandan `/api/*` a
+> `backend/public/index.php` y se evalúan antes de comprobar si el archivo
+> existe, así que con ellas puestas la carpeta real `public_html/api/` nunca
+> llega a responder. En su lugar va la regla original:
+>
+> ```apache
+> RewriteRule ^api/ - [L]
+> ```
 
 ### 1. Compilar el frontend
 
