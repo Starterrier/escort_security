@@ -46,9 +46,16 @@ Seis secrets en **Settings → Secrets and variables → Actions**, y nada más:
 | `DB_PASS` | Bases de datos → MySQL |
 
 Todo lo demás está escrito en el bloque `env:` de `deploy.yml`, porque no es
-secreto y ya vive en el repositorio: el dominio, la ruta remota
-(`domains/<dominio>/public_html`), y los correos del formulario de contacto.
-Si cambia de dominio, se edita ahí y en ningún otro sitio.
+secreto y ya vive en el repositorio: el dominio (`SITE_DOMAIN`) y los correos
+del formulario de contacto. Si cambia de dominio, se edita ahí y en ningún
+otro sitio.
+
+La ruta dentro del FTP **no** se configura. El step *Detectar la ruta del
+sitio* se conecta antes de mover nada y distingue los tres casos posibles: que
+la cuenta aterrice en el home (el sitio está en `domains/<dominio>/public_html`),
+que entre directamente dentro de `public_html`, o que el plan tenga un único
+`public_html` colgando de la raíz. Si no encuentra el dominio, falla listando
+los que sí existen en el servidor, para que corrija `SITE_DOMAIN` sin adivinar.
 
 `localhost` y el puerto `3306` van fijos: en hosting compartido de Hostinger
 MySQL siempre escucha en el mismo servidor.
