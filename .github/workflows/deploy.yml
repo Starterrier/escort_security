@@ -73,14 +73,36 @@ jobs:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASS: ${{ secrets.DB_PASS }}
+          # Solo para diagnosticar: si los valores acabaron en la pestana
+          # Variables en vez de Secrets, aqui se nota y se avisa. Se comprueba
+          # si estan vacios, nunca se imprimen ni se usan para desplegar: las
+          # variables viajan en texto plano a los logs y una contrasena FTP no
+          # puede terminar ahi.
+          VAR_FTP_SERVER: ${{ vars.FTP_SERVER }}
+          VAR_FTP_USERNAME: ${{ vars.FTP_USERNAME }}
+          VAR_FTP_PASSWORD: ${{ vars.FTP_PASSWORD }}
+          VAR_DB_NAME: ${{ vars.DB_NAME }}
+          VAR_DB_USER: ${{ vars.DB_USER }}
+          VAR_DB_PASS: ${{ vars.DB_PASS }}
         run: |
           faltan=""
+          en_variables=""
           for v in FTP_SERVER FTP_USERNAME FTP_PASSWORD DB_NAME DB_USER DB_PASS; do
-            [ -n "${!v}" ] || faltan="$faltan $v"
+            if [ -z "${!v}" ]; then
+              faltan="$faltan $v"
+              var="VAR_$v"
+              [ -z "${!var}" ] || en_variables="$en_variables $v"
+            fi
           done
 
+          if [ -n "$en_variables" ]; then
+            echo "::error::Estos valores estan en la pestana Variables, pero el deploy los lee de Secrets:$en_variables"
+            echo "::error::Muevalos a Settings > Secrets and variables > Actions > pestana Secrets, y BORRELOS de Variables: las variables se guardan y se imprimen en texto plano."
+            exit 1
+          fi
+
           if [ -n "$faltan" ]; then
-            echo "::error::Faltan estos secrets en Settings > Secrets and variables > Actions:$faltan"
+            echo "::error::Faltan estos secrets en Settings > Secrets and variables > Actions (pestana Secrets):$faltan"
             exit 1
           fi
 
