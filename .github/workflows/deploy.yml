@@ -108,6 +108,121 @@ jobs:
 
           echo "Secrets completos. Sitio: ${SITE_DOMAIN}"
 
+      # ======================================================================
+      # FTP - mirar el servidor ANTES de decidir que se despliega
+      # ======================================================================
+
+      - name: Instalar lftp
+        # `apt-get update` primero: sin el, el runner puede tener indices de
+        # paquetes rancios y el install falla con "Unable to locate package
+        # lftp" - un deploy rojo que no tiene nada que ver con tu codigo.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y lftp
+
+      # -- Averiguar donde vive el sitio y que hay ya subido -----------------
+      # La ruta no se puede fijar por adelantado: la cuenta FTP principal de
+      # Hostinger aterriza en el home (y el sitio esta en
+      # domains/<dominio>/public_html), pero una cuenta creada para un dominio
+      # concreto entra directamente dentro de su public_html.
+      #
+      # De paso mira si el sitio ya esta desplegado. Sin eso, el primer deploy
+      # de un servidor vacio no sube nada: el git diff de un commit que solo
+      # toca el workflow no menciona frontend/ ni backend/, y todos los pasos
+      # de subida se saltan dejando el run en verde y el hosting igual de vacio.
+      - name: Detectar la ruta del sitio en el FTP
+        id: rutas
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          AJUSTES='set ftp:ssl-allow yes
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate no
+          set ftp:passive-mode true
+          set ftp:use-mlsd true
+          set net:timeout 30
+          set net:max-retries 3
+          set net:connection-limit 1'
+
+          # Ejecuta ordenes en el servidor. `cmd:fail-exit true` hace que un cd
+          # a una carpeta inexistente devuelva un codigo de salida != 0, que es
+          # justo lo que se usa abajo para probar si una ruta existe.
+          ftp_run() {
+            timeout 120 lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" <<FTPCMD
+          $AJUSTES
+          set cmd:fail-exit true
+          $1
+          quit
+          FTPCMD
+          }
+
+          echo "Conectando para inspeccionar el servidor..."
+          PWD_REMOTO="$(ftp_run 'pwd' | tail -n1 | tr -d '\r')"
+          echo "La sesion FTP aterriza en: ${PWD_REMOTO:-(desconocido)}"
+          echo ""
+          echo "---- Contenido de esa carpeta ----"
+          ftp_run 'cls -1' || true
+          echo "----------------------------------"
+          echo ""
+
+          REMOTE=""
+
+          # 1) Cuenta FTP del home: el dominio cuelga de domains/.
+          if ftp_run "cd domains/${SITE_DOMAIN}/public_html" >/dev/null 2>&1; then
+            REMOTE="domains/${SITE_DOMAIN}/public_html"
+
+          # 2) La sesion ya empieza dentro del public_html del dominio: el
+          #    destino es la propia carpeta inicial.
+          elif [ "${PWD_REMOTO%/public_html}" != "$PWD_REMOTO" ]; then
+            REMOTE="."
+
+          # 3) Home con un unico public_html (plan de un solo sitio).
+          elif ftp_run 'cd public_html' >/dev/null 2>&1; then
+            REMOTE="public_html"
+          fi
+
+          if [ -z "$REMOTE" ]; then
+            echo "::error::No se encontro el public_html de ${SITE_DOMAIN}."
+            echo "Dominios visibles en el servidor:"
+            ftp_run 'cls -1 domains/' || echo "  (no hay carpeta domains/)"
+            echo "::error::Corrija SITE_DOMAIN en el bloque env: de este workflow con el nombre que aparezca arriba."
+            exit 1
+          fi
+
+          echo "remote=$REMOTE" >> "$GITHUB_OUTPUT"
+          echo "Destino del deploy: $REMOTE"
+          echo ""
+
+          # ¿Que hay ya publicado? `cls -1` de algo inexistente no imprime
+          # nada, asi que basta con mirar si la salida trae alguna linea.
+          existe_remoto() {
+            ftp_run "cls -1 $1" 2>/dev/null | tr -d '\r' | grep -q .
+          }
+
+          falta_frontend=false
+          falta_backend=false
+
+          existe_remoto "$REMOTE/index.html"               || falta_frontend=true
+          existe_remoto "$REMOTE/backend/public/index.php" || falta_backend=true
+
+          echo "falta_frontend=$falta_frontend" >> "$GITHUB_OUTPUT"
+          echo "falta_backend=$falta_backend"   >> "$GITHUB_OUTPUT"
+
+          echo "---- Estado actual del servidor ----"
+          if [ "$falta_frontend" = "true" ]; then
+            echo "  index.html          -> NO esta, hay que subir el frontend"
+          else
+            echo "  index.html          -> ya publicado"
+          fi
+          if [ "$falta_backend" = "true" ]; then
+            echo "  backend/public/     -> NO esta, hay que subir la API"
+          else
+            echo "  backend/public/     -> ya publicado"
+          fi
+          echo "-----------------------------------"
+
       # -- 3. Detectar que cambio -------------------------------------------
       - name: Detectar archivos modificados
         id: changes
@@ -144,6 +259,18 @@ jobs:
           # final del script, tumba el step aunque no haya pasado nada malo.
           echo "$CHANGED" | grep -q '^frontend/' && frontend_changed=true || true
           echo "$CHANGED" | grep -q '^backend/'  && backend_changed=true  || true
+
+          # Lo que no este en el servidor se sube aunque el diff no lo mencione.
+          # Cubre el primer deploy y tambien el caso de que alguien borre algo
+          # por FTP: el siguiente push lo repone en vez de dejarlo roto.
+          if [ "${{ steps.rutas.outputs.falta_frontend }}" = "true" ] && [ "$frontend_changed" = "false" ]; then
+            echo "-> El frontend no esta en el servidor: se sube aunque no haya cambiado."
+            frontend_changed=true
+          fi
+          if [ "${{ steps.rutas.outputs.falta_backend }}" = "true" ] && [ "$backend_changed" = "false" ]; then
+            echo "-> La API no esta en el servidor: se sube aunque no haya cambiado."
+            backend_changed=true
+          fi
 
           echo "frontend=$frontend_changed" >> "$GITHUB_OUTPUT"
           echo "backend=$backend_changed"   >> "$GITHUB_OUTPUT"
@@ -290,94 +417,6 @@ jobs:
           # produccion. `php -l` no imprime los valores, solo valida sintaxis.
           find deploy/backend -name '*.php' -print0 | xargs -0 -n1 -- php -l > /dev/null
           echo "Backend validado: $(find deploy/backend -name '*.php' | wc -l) archivos PHP."
-
-      # ======================================================================
-      # FTP - instalar lftp solo si hay algo que subir
-      # ======================================================================
-
-      - name: Instalar lftp
-        if: |
-          steps.changes.outputs.frontend == 'true' ||
-          steps.changes.outputs.backend  == 'true'
-        # `apt-get update` primero: sin el, el runner puede tener indices de
-        # paquetes rancios y el install falla con "Unable to locate package
-        # lftp" - un deploy rojo que no tiene nada que ver con tu codigo.
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y lftp
-
-      # -- Averiguar donde vive el sitio dentro del FTP ----------------------
-      # No se puede fijar por adelantado: la cuenta FTP principal de Hostinger
-      # aterriza en el home (y el sitio esta en domains/<dominio>/public_html),
-      # pero una cuenta creada para un dominio concreto entra directamente
-      # dentro de su public_html. Subir al sitio equivocado es peor que fallar,
-      # asi que se comprueba antes de mover un solo archivo.
-      - name: Detectar la ruta del sitio en el FTP
-        id: rutas
-        if: |
-          steps.changes.outputs.frontend == 'true' ||
-          steps.changes.outputs.backend  == 'true'
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        run: |
-          AJUSTES='set ftp:ssl-allow yes
-          set ftp:ssl-protect-data true
-          set ssl:verify-certificate no
-          set ftp:passive-mode true
-          set ftp:use-mlsd true
-          set net:timeout 30
-          set net:max-retries 3
-          set net:connection-limit 1'
-
-          # Ejecuta ordenes en el servidor. `cmd:fail-exit true` hace que un cd
-          # a una carpeta inexistente devuelva un codigo de salida != 0, que es
-          # justo lo que se usa abajo para probar si una ruta existe.
-          ftp_run() {
-            timeout 120 lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" <<FTPCMD
-          $AJUSTES
-          set cmd:fail-exit true
-          $1
-          quit
-          FTPCMD
-          }
-
-          echo "Conectando para inspeccionar el servidor..."
-          PWD_REMOTO="$(ftp_run 'pwd' | tail -n1 | tr -d '\r')"
-          echo "La sesion FTP aterriza en: ${PWD_REMOTO:-(desconocido)}"
-          echo ""
-          echo "---- Contenido de esa carpeta ----"
-          ftp_run 'cls -1' || true
-          echo "----------------------------------"
-          echo ""
-
-          REMOTE=""
-
-          # 1) Cuenta FTP del home: el dominio cuelga de domains/.
-          if ftp_run "cd domains/${SITE_DOMAIN}/public_html" >/dev/null 2>&1; then
-            REMOTE="domains/${SITE_DOMAIN}/public_html"
-
-          # 2) La sesion ya empieza dentro del public_html del dominio: el
-          #    destino es la propia carpeta inicial.
-          elif [ "${PWD_REMOTO%/public_html}" != "$PWD_REMOTO" ]; then
-            REMOTE="."
-
-          # 3) Home con un unico public_html (plan de un solo sitio).
-          elif ftp_run 'cd public_html' >/dev/null 2>&1; then
-            REMOTE="public_html"
-          fi
-
-          if [ -z "$REMOTE" ]; then
-            echo "::error::No se encontro el public_html de ${SITE_DOMAIN}."
-            echo "Dominios visibles en el servidor:"
-            ftp_run 'cls -1 domains/' || echo "  (no hay carpeta domains/)"
-            echo "::error::Corrija SITE_DOMAIN en el bloque env: de este workflow con el nombre que aparezca arriba."
-            exit 1
-          fi
-
-          echo "remote=$REMOTE" >> "$GITHUB_OUTPUT"
-          echo "Destino del deploy: $REMOTE"
 
       # Frontend: deploy COMPLETO en cada cambio (no incremental).
       # Razon: mezclar bundles viejos con un index.html nuevo (o al reves) tumba
